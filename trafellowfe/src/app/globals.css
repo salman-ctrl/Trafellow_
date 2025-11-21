@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Background & Card Colors */
+    --bg-default: 195 100% 98%;   /* Biru muda sangat lembut seperti langit */
+    --bg-card: 0 0% 100%;         /* Putih untuk card */
+
+    /* Text Colors */
+    --text-primary: 210 20% 20%;     /* Biru keabu gelap untuk judul */
+    --text-secondary: 210 15% 40%;   /* Biru keabu medium untuk teks biasa */
+    --text-muted: 210 15% 60%;       /* Biru muda untuk info tambahan */
+
+    /* Primary/Action Color (Biru Laut Travel) */
+    --color-primary: 195 85% 55%;    /* Turquoise / biru laut khas travel */
+    --color-primary-fg: 0 0% 100%;   /* Putih */
+
+    /* Secondary/Neutral Color (Coral Sunset) */
+    --color-secondary: 15 90% 60%;      /* Coral/orange untuk aksen */
+    --color-secondary-fg: 0 0% 100%;
+
+    /* Semantic Colors */
+    --color-success: 145 63% 42%;   /* Hijau */
+    --color-danger: 347 90% 58%;    /* Merah */
+    --color-warning: 38 92% 50%;    /* Kuning */
+
+    /* Other */
+    --border-color: 210 25% 85%;    /* Biru pastel untuk border */
+    --radius: 0.75rem;
+  }
+
+  body {
+    background-color: hsl(var(--bg-default));
+    color: hsl(var(--text-primary));
+  }
+}
