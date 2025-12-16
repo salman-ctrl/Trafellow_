@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowSync - Stop Managing. Start Shipping.</title>
+    <meta name="description" content="Manajemen tugas level berikutnya untuk tim modern.">
+
+    <!-- FONTS: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- LUCIDE ICONS -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CONFIG -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6', // Primary Teal
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        dark: {
+                            bg: '#0B0F19', // Deeper dark
+                            surface: '#151B2B',
+                            border: '#2A3241',
+                            text: '#E2E8F0',
+                            muted: '#94a3b8'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'scroll': 'scroll 40s linear infinite',
+                        'fade-in': 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'blob': 'blob 7s infinite',
+                        'typewriter': 'typewriter 2s steps(40) 1s 1 normal both, blinkTextCursor 500ms steps(40) infinite normal',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        scroll: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* GLOBAL STYLES */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* CUSTOM SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* DRAG & DROP STYLES */
+        .task-card {
+            cursor: grab;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: none;
+        }
+        .task-card:active {
+            cursor: grabbing;
+        }
+        .task-card.dragging {
+            opacity: 0.8;
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+        }
+        .column-body {
+            min-height: 150px;
+            transition: background-color 0.2s ease;
+        }
+        .column-body.drag-over {
+            background-color: rgba(20, 184, 166, 0.05);
+            border-radius: 0.75rem;
+            border: 2px dashed #14b8a6;
+        }
+
+        /* UTILITIES */
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+        .dark .glass {
+            background: rgba(11, 15, 25, 0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .hero-glow {
+            background: radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+        .dark .hero-glow {
+            background: radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.1) 0%, rgba(15, 23, 42, 0) 70%);
+        }
+
+        /* TYPING EFFECT CURSOR */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s step-start infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* CONFETTI CANVAS */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* NOISE TEXTURE OVERLAY */
+        .noise-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-dark-text transition-colors duration-300">
+
+    <!-- NOISE TEXTURE -->
+    <div class="noise-bg"></div>
+
+    <!-- ROOT APP CONTAINER -->
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Views injected here -->
+    </div>
+
+    <!-- GLOBAL OVERLAYS -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+    <div id="modal-root"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- ====================================================================================
+         TEMPLATES
+         ==================================================================================== -->
+
+    <!-- 1. LANDING PAGE -->
+    <template id="view-landing">
+        <div class="landing-page">
+            <!-- Navbar -->
+            <nav class="fixed top-0 w-full z-50 glass transition-all duration-300">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center h-20">
+                        <a href="#" class="flex items-center gap-2 group relative" onclick="window.scrollTo(0,0)">
+                            <div class="absolute -inset-2 bg-brand-500/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                            <div class="w-10 h-10 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-brand-500 dark:text-brand-600 relative z-10 shadow-lg group-hover:scale-105 transition-transform">
+                                <i data-lucide="zap" class="w-6 h-6 fill-current"></i>
+                            </div>
+                            <span class="font-bold text-xl tracking-tight text-slate-900 dark:text-white relative z-10">FlowSync</span>
+                        </a>
+
+                        <!-- Desktop Menu -->
+                        <div class="hidden md:flex items-center gap-1">
+                            <a href="#features" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition">Fitur</a>
+                            <a href="#workflow" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition">Workflow</a>
+                            <a href="#pricing" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition">Harga</a>
+                        </div>
+
+                        <div class="hidden md:flex items-center gap-4">
+                            <button onclick="app.toggleTheme()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition text-slate-600 dark:text-slate-300">
+                                <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                                <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                            </button>
+                            <div class="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
+                            <button onclick="app.router.navigate('login')" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-brand-600 transition">Log in</button>
+                            <button onclick="app.router.navigate('register')" class="group relative px-6 py-2.5 bg-slate-900 dark:bg-white rounded-full text-white dark:text-slate-900 font-bold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all overflow-hidden">
+                                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                                <span class="relative flex items-center gap-2">Get Started <i data-lucide="arrow-right" class="w-4 h-4"></i></span>
+                            </button>
+                        </div>
+
+                        <!-- Mobile Menu Button -->
+                        <button onclick="app.toggleMobileMenu()" class="md:hidden p-2 text-slate-600 dark:text-slate-300">
+                            <i data-lucide="menu" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Dropdown -->
+                <div id="mobile-menu" class="hidden md:hidden absolute top-20 left-0 w-full bg-white dark:bg-dark-surface border-b border-slate-100 dark:border-dark-border p-4 shadow-xl flex-col gap-4 animate-slide-up">
+                    <a href="#features" class="block p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-medium">Fitur</a>
+                    <a href="#pricing" class="block p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-medium">Harga</a>
+                    <div class="h-px bg-slate-100 dark:bg-white/10 my-2"></div>
+                    <button onclick="app.router.navigate('login')" class="w-full text-left p-3 font-semibold text-slate-900 dark:text-white">Log in</button>
+                    <button onclick="app.router.navigate('register')" class="w-full bg-brand-600 text-white py-3 rounded-xl font-bold">Get Started</button>
+                    <button onclick="app.toggleTheme()" class="w-full flex items-center gap-3 p-3 text-slate-600 dark:text-slate-300">
+                        <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                        <span>Switch Theme</span>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Hero Section -->
+            <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+                <!-- Background Decorations -->
+                <div class="absolute top-20 left-10 w-72 h-72 bg-purple-400/20 rounded-full blur-[100px] animate-blob"></div>
+                <div class="absolute bottom-20 right-10 w-96 h-96 bg-brand-400/20 rounded-full blur-[100px] animate-blob" style="animation-delay: 2s"></div>
+
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                    <!-- Badge -->
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-sm shadow-sm text-slate-600 dark:text-slate-300 text-sm font-medium mb-8 hover:scale-105 transition cursor-default animate-slide-up">
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        New v3.0: AI Automation Included
+                    </div>
+
+                    <!-- Headline with Typewriter -->
+                    <h1 class="text-5xl md:text-7xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-6 leading-[1.1] animate-slide-up" style="animation-delay: 0.1s;">
+                        Stop Managing. <br class="hidden md:block"/>
+                        Start <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-blue-600 typing-cursor" id="typewriter-text">Shipping.</span>
+                    </h1>
+                    
+                    <p class="mt-8 text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10 animate-slide-up" style="animation-delay: 0.2s;">
+                        FlowSync menggantikan Trello, Jira, dan Slack Anda. Satu sistem operasi untuk produk tim yang ingin bergerak cepat tanpa birokrasi.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row justify-center gap-4 mb-20 animate-slide-up" style="animation-delay: 0.3s;">
+                        <button onclick="app.router.navigate('register')" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-4 rounded-full font-bold text-lg transition shadow-xl shadow-brand-500/30 flex items-center justify-center gap-2 hover:-translate-y-1">
+                            Mulai Gratis Sekarang <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                        </button>
+                        <button class="bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 px-8 py-4 rounded-full font-bold text-lg transition flex items-center justify-center gap-2 backdrop-blur-sm">
+                            <i data-lucide="play-circle" class="w-5 h-5 text-slate-400"></i> Demo 1 Menit
+                        </button>
+                    </div>
+
+                    <!-- Floating Dashboard -->
+                    <div class="relative mx-auto max-w-6xl animate-float" style="animation-delay: 0.5s;">
+                        <div class="relative rounded-2xl border border-slate-200 dark:border-dark-border bg-white/50 dark:bg-dark-surface/50 backdrop-blur-md shadow-2xl overflow-hidden p-2 md:p-3 ring-1 ring-white/20">
+                            <!-- Dashboard Image Replacement -->
+                            <div class="rounded-xl overflow-hidden relative group cursor-pointer" onclick="app.router.navigate('login')">
+                                <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1974&auto=format&fit=crop" class="w-full h-auto object-cover opacity-90 transition duration-700 group-hover:scale-[1.02]" alt="Dashboard Preview">
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end justify-center pb-10 opacity-0 group-hover:opacity-100 transition duration-500">
+                                    <span class="bg-white text-slate-900 px-6 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition">Masuk ke App</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Glow behind dashboard -->
+                        <div class="absolute -inset-10 bg-gradient-to-r from-brand-500/30 to-purple-500/30 rounded-[3rem] blur-[60px] -z-10"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Social Proof Marquee -->
+            <section class="py-10 border-y border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 overflow-hidden">
+                <div class="relative flex overflow-x-hidden group">
+                    <div class="animate-scroll whitespace-nowrap flex gap-16 min-w-full items-center justify-center opacity-50 dark:opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+                        <span class="text-2xl font-bold dark:text-white">ACME Corp</span>
+                        <span class="text-2xl font-bold dark:text-white">Linear</span>
+                        <span class="text-2xl font-bold dark:text-white">Vercel</span>
+                        <span class="text-2xl font-bold dark:text-white">Notion</span>
+                        <span class="text-2xl font-bold dark:text-white">Stripe</span>
+                        <span class="text-2xl font-bold dark:text-white">Airbnb</span>
+                        <!-- Duplicate -->
+                        <span class="text-2xl font-bold dark:text-white">ACME Corp</span>
+                        <span class="text-2xl font-bold dark:text-white">Linear</span>
+                        <span class="text-2xl font-bold dark:text-white">Vercel</span>
+                        <span class="text-2xl font-bold dark:text-white">Notion</span>
+                        <span class="text-2xl font-bold dark:text-white">Stripe</span>
+                        <span class="text-2xl font-bold dark:text-white">Airbnb</span>
+                    </div>
+                    <div class="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white dark:from-dark-bg to-transparent z-10"></div>
+                    <div class="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white dark:from-dark-bg to-transparent z-10"></div>
+                </div>
+            </section>
+
+            <!-- Feature Grid -->
+            <section id="features" class="py-32 bg-white dark:bg-dark-bg relative">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="mb-20 text-center">
+                        <h2 class="text-3xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-white">Features that feel like <span class="text-brand-500">magic.</span></h2>
+                        <p class="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-lg">Kami membuang fitur sampah. Hanya menyisakan alat yang membantu Anda mengirimkan produk.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <!-- Feature 1 -->
+                        <div class="bg-slate-50 dark:bg-dark-surface p-8 rounded-3xl border border-slate-100 dark:border-white/5 hover:border-brand-500/30 transition group relative overflow-hidden">
+                            <div class="w-14 h-14 bg-white dark:bg-white/10 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition duration-300">
+                                <i data-lucide="kanban-square" class="w-7 h-7 text-brand-500"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Kanban Board 2.0</h3>
+                            <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Drag & drop engine yang ditulis ulang. Sangat responsif, mendukung touch device, dan memberikan feedback visual instan.</p>
+                            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/10 rounded-full blur-3xl group-hover:bg-brand-500/20 transition"></div>
+                        </div>
+
+                        <!-- Feature 2 -->
+                        <div class="bg-slate-50 dark:bg-dark-surface p-8 rounded-3xl border border-slate-100 dark:border-white/5 hover:border-blue-500/30 transition group relative overflow-hidden">
+                            <div class="w-14 h-14 bg-white dark:bg-white/10 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition duration-300">
+                                <i data-lucide="zap" class="w-7 h-7 text-blue-500"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Instant SPA</h3>
+                            <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Arsitektur Single Page Application. Berpindah halaman tanpa reload. Terasa seperti aplikasi native di desktop Anda.</p>
+                            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition"></div>
+                        </div>
+
+                        <!-- Feature 3 -->
+                        <div class="bg-slate-50 dark:bg-dark-surface p-8 rounded-3xl border border-slate-100 dark:border-white/5 hover:border-purple-500/30 transition group relative overflow-hidden">
+                            <div class="w-14 h-14 bg-white dark:bg-white/10 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition duration-300">
+                                <i data-lucide="sparkles" class="w-7 h-7 text-purple-500"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Dopamine Hits</h3>
+                            <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Kami merayakan kemenangan kecil Anda. Efek confetti saat tugas selesai membuat tim ketagihan menyelesaikan pekerjaan.</p>
+                            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Section -->
+            <section class="py-24 relative overflow-hidden">
+                <div class="absolute inset-0 bg-slate-900 dark:bg-brand-900"></div>
+                <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+                
+                <div class="max-w-4xl mx-auto px-4 text-center relative z-10">
+                    <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">Siap Mengatur Startup Anda?</h2>
+                    <p class="text-slate-300 text-lg mb-10 max-w-2xl mx-auto">Bergabunglah dengan 2,000+ tim yang beralih dari alat lama yang lambat. Coba gratis sekarang.</p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button onclick="app.router.navigate('register')" class="bg-white text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-100 transition shadow-xl hover:scale-105">
+                            Mulai Gratis Sekarang
+                        </button>
+                    </div>
+                    <p class="text-slate-400 text-sm mt-6">Tanpa kartu kredit. Setup dalam 2 menit.</p>
+                </div>
+            </section>
+
+            <footer class="bg-white dark:bg-dark-surface border-t border-slate-200 dark:border-white/5 py-12">
+                <div class="max-w-7xl mx-auto px-4 text-center">
+                    <p class="text-slate-500 dark:text-slate-400">© 2024 FlowSync Inc. Dibuat dengan obsesi pada detail.</p>
+                </div>
+            </footer>
+        </div>
+    </template>
+
+    <!-- 2. AUTH TEMPLATE -->
+    <template id="view-auth">
+        <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-dark-bg relative overflow-hidden p-4">
+            <!-- Fancy Background -->
+            <div class="absolute inset-0 z-0">
+                <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-brand-500/20 rounded-full blur-[120px] animate-pulse-slow"></div>
+                <div class="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/20 rounded-full blur-[120px] animate-pulse-slow" style="animation-delay: 1s;"></div>
+            </div>
+
+            <div class="bg-white/80 dark:bg-dark-surface/80 backdrop-blur-xl w-full max-w-md rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 p-8 relative z-10 animate-fade-in">
+                <div class="text-center mb-8">
+                    <button onclick="app.router.navigate('landing')" class="w-12 h-12 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-brand-500 dark:text-brand-600 mx-auto mb-4 hover:scale-110 transition shadow-lg">
+                        <i data-lucide="zap" class="w-6 h-6 fill-current"></i>
+                    </button>
+                    <h2 id="auth-title" class="text-2xl font-bold text-slate-900 dark:text-white">Welcome Back</h2>
+                    <p id="auth-subtitle" class="text-slate-500 dark:text-slate-400 mt-2">Masuk untuk melanjutkan flow Anda.</p>
+                </div>
+
+                <form id="auth-form" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email</label>
+                        <div class="relative group">
+                            <i data-lucide="mail" class="absolute left-3 top-3 w-5 h-5 text-slate-400 group-focus-within:text-brand-500 transition"></i>
+                            <input type="email" id="auth-email" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="you@company.com" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
+                        <div class="relative group">
+                            <i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-slate-400 group-focus-within:text-brand-500 transition"></i>
+                            <input type="password" id="auth-password" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-brand-500/30 flex justify-center items-center gap-2 group relative overflow-hidden">
+                        <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></div>
+                        <span id="auth-btn-text">Masuk</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition"></i>
+                    </button>
+                </form>
+
+                <div class="mt-8 text-center text-sm">
+                    <p id="auth-switch-text" class="text-slate-500 dark:text-slate-400">
+                        Belum punya akun? <a href="#" class="text-brand-600 dark:text-brand-400 font-bold hover:underline" id="auth-switch-link">Daftar sekarang</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 3. DASHBOARD TEMPLATE -->
+    <template id="view-dashboard">
+        <div class="flex h-screen overflow-hidden bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-text">
+            <!-- Sidebar -->
+            <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-dark-surface border-r border-slate-200 dark:border-white/5 z-20">
+                <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-white/5">
+                    <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition" onclick="app.router.navigate('landing')">
+                        <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center text-white shadow-md">
+                            <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                        </div>
+                        <span class="font-bold text-lg tracking-tight dark:text-white">FlowSync</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                    <div class="px-2 mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Workspace</div>
+                    <a href="#" class="flex items-center gap-3 px-3 py-2.5 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 rounded-xl font-medium transition shadow-sm border border-brand-100 dark:border-transparent">
+                        <i data-lucide="kanban-square" class="w-5 h-5"></i> Board
+                    </a>
+                    <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl font-medium transition">
+                        <i data-lucide="list-todo" class="w-5 h-5"></i> My Tasks
+                    </a>
+                    
+                    <div class="px-2 mt-8 mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Projects</div>
+                    <div id="project-list" class="space-y-1"></div>
+                </div>
+
+                <div class="p-4 border-t border-slate-200 dark:border-white/5">
+                    <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-inner" id="user-avatar">U</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold truncate dark:text-white" id="user-name">User</p>
+                            <p class="text-xs text-slate-500">Pro Plan</p>
+                        </div>
+                        <button onclick="app.auth.logout()" class="text-slate-400 hover:text-red-500 transition p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 flex flex-col h-full min-w-0 relative">
+                <!-- Header -->
+                <header class="h-16 bg-white dark:bg-dark-surface border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 sm:px-6 z-10 backdrop-blur-md bg-opacity-90">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-xl font-bold dark:text-white">Website Redesign</h1>
+                            <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 font-bold border border-green-200 dark:border-green-500/30 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Active
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="app.toggleTheme()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition">
+                            <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                            <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                        </button>
+                        <div class="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
+                        <button class="bg-slate-900 dark:bg-brand-600 hover:bg-slate-800 dark:hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg transition flex items-center gap-2 hover:-translate-y-0.5" onclick="app.dashboard.openAddTaskModal()">
+                            <i data-lucide="plus" class="w-4 h-4"></i> <span class="hidden sm:inline">New Task</span>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Board Area -->
+                <div class="flex-1 overflow-x-auto overflow-y-hidden p-6 bg-slate-50 dark:bg-dark-bg">
+                    <!-- Dot Pattern Background -->
+                    <div class="absolute inset-0 opacity-[0.4]" style="background-image: radial-gradient(#94a3b8 1px, transparent 1px); background-size: 24px 24px; pointer-events: none;"></div>
+                    
+                    <div class="flex h-full gap-6 min-w-max pb-4 relative z-0" id="kanban-board">
+                        <!-- Columns will be injected here -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </template>
+
+    <!-- 4. MODAL ADD TASK -->
+    <template id="modal-add-task">
+        <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="app.dashboard.closeModal()"></div>
+            <div class="bg-white dark:bg-dark-surface w-full max-w-lg rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-slide-up border border-slate-100 dark:border-white/10">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-lg dark:text-white">Tambah Tugas Baru</h3>
+                    <button onclick="app.dashboard.closeModal()" class="text-slate-400 hover:text-red-500 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <form onsubmit="app.dashboard.handleAddTaskSubmit(event)" class="p-6 space-y-4">
+                    <input type="hidden" id="task-col-id">
+                    <div>
+                        <label class="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">Judul Tugas</label>
+                        <input type="text" id="task-title" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition" placeholder="Contoh: Perbaiki bug login" required autofocus>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">Kategori</label>
+                            <select id="task-tag" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition">
+                                <option value="Design">🎨 Design</option>
+                                <option value="Dev">💻 Dev</option>
+                                <option value="Marketing">📢 Marketing</option>
+                                <option value="Urgent">🔥 Urgent</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300">Assignee</label>
+                            <select id="task-assignee" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition">
+                                <option value="Me">Saya</option>
+                                <option value="Team">Tim Desain</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pt-4 flex justify-end gap-3">
+                        <button type="button" onclick="app.dashboard.closeModal()" class="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl font-bold transition">Batal</button>
+                        <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold shadow-lg shadow-brand-500/20 transition">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <!-- LOGIC -->
+    <script>
+        // --- UTILS: CONFETTI ---
+        const confetti = {
+            fire(x, y) {
+                const canvas = document.getElementById('confetti-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                const particles = [];
+                const colors = ['#14b8a6', '#3b82f6', '#f59e0b', '#ec4899'];
+
+                for(let i=0; i<30; i++) {
+                    particles.push({
+                        x: x, y: y,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 1) * 10,
+                        size: Math.random() * 8 + 4,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        life: 100
+                    });
+                }
+
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    let active = false;
+                    particles.forEach(p => {
+                        if(p.life > 0) {
+                            active = true;
+                            p.x += p.vx;
+                            p.y += p.vy;
+                            p.vy += 0.5; // Gravity
+                            p.life -= 2;
+                            ctx.fillStyle = p.color;
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                    if(active) requestAnimationFrame(animate);
+                    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                animate();
+            }
+        };
+
+        // --- CORE APP ---
+        const app = {
+            state: {
+                user: JSON.parse(localStorage.getItem('fs_user')) || null,
+                theme: localStorage.getItem('fs_theme') || 'light',
+                projects: [
+                    { name: 'Website Redesign', color: 'bg-pink-500' },
+                    { name: 'Q3 Roadmap', color: 'bg-blue-500' }
+                ],
+                columns: JSON.parse(localStorage.getItem('fs_cols')) || [
+                    { id: 'c1', title: 'Backlog', count: 2 },
+                    { id: 'c2', title: 'In Progress', count: 1 },
+                    { id: 'c3', title: 'Review', count: 1 },
+                    { id: 'c4', title: 'Done', count: 1 }
+                ],
+                tasks: JSON.parse(localStorage.getItem('fs_tasks')) || [
+                    { id: 't1', colId: 'c1', title: 'Competitor Analysis', tag: 'Marketing' },
+                    { id: 't2', colId: 'c2', title: 'Hero Section Design', tag: 'Design' },
+                    { id: 't3', colId: 'c3', title: 'Mobile Responsive Fix', tag: 'Dev' },
+                    { id: 't4', colId: 'c4', title: 'Initial Setup', tag: 'Dev' }
+                ]
+            },
+
+            init() {
+                this.applyTheme();
+                const path = this.state.user ? 'dashboard' : 'landing';
+                this.router.navigate(path);
+                
+                // Typewriter Effect Logic for Landing
+                if(path === 'landing') this.startTypewriter();
+            },
+
+            save() {
+                localStorage.setItem('fs_tasks', JSON.stringify(this.state.tasks));
+                localStorage.setItem('fs_cols', JSON.stringify(this.state.columns));
+            },
+
+            toggleTheme() {
+                this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
+                localStorage.setItem('fs_theme', this.state.theme);
+                this.applyTheme();
+            },
+
+            applyTheme() {
+                if(this.state.theme === 'dark') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            },
+
+            toggleMobileMenu() {
+                const menu = document.getElementById('mobile-menu');
+                menu.classList.toggle('hidden');
+                menu.classList.toggle('flex');
+            },
+
+            startTypewriter() {
+                const textEl = document.getElementById('typewriter-text');
+                if(!textEl) return;
+                const words = ["Shipping.", "Growing.", "Winning."];
+                let i = 0;
+                setInterval(() => {
+                    i = (i + 1) % words.length;
+                    textEl.innerText = words[i];
+                }, 3000);
+            },
+
+            toast(msg, type='success') {
+                const box = document.getElementById('toast-container');
+                const el = document.createElement('div');
+                const bg = type === 'success' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-red-500 text-white';
+                el.className = `toast-enter flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl font-bold text-sm ${bg}`;
+                el.innerHTML = `<i data-lucide="${type==='success'?'check':'alert-circle'}" class="w-5 h-5"></i> ${msg}`;
+                box.appendChild(el);
+                lucide.createIcons();
+                
+                requestAnimationFrame(() => {
+                    el.classList.add('toast-enter-active');
+                    el.classList.remove('toast-enter');
+                });
+                setTimeout(() => el.remove(), 3000);
+            },
+
+            router: {
+                navigate(view) {
+                    const root = document.getElementById('app');
+                    const tpl = document.getElementById(`view-${view === 'register' ? 'auth' : view}`);
+                    if(!tpl) return;
+                    root.innerHTML = '';
+                    root.appendChild(tpl.content.cloneNode(true));
+                    window.scrollTo(0,0);
+                    
+                    if(view === 'landing') app.startTypewriter();
+                    if(view === 'login' || view === 'register') app.auth.init(view);
+                    if(view === 'dashboard') {
+                        if(!app.state.user) return this.navigate('login');
+                        app.dashboard.render();
+                    }
+                    lucide.createIcons();
+                }
+            },
+
+            auth: {
+                init(mode) {
+                    const isLogin = mode === 'login';
+                    document.getElementById('auth-title').innerText = isLogin ? 'Welcome Back' : 'Get Started';
+                    document.getElementById('auth-btn-text').innerText = isLogin ? 'Masuk' : 'Daftar Gratis';
+                    document.getElementById('auth-switch-text').innerHTML = isLogin ? 
+                        `Belum punya akun? <a href="#" class="text-brand-600 font-bold hover:underline" onclick="app.router.navigate('register')">Daftar</a>` : 
+                        `Sudah punya akun? <a href="#" class="text-brand-600 font-bold hover:underline" onclick="app.router.navigate('login')">Masuk</a>`;
+                    
+                    document.getElementById('auth-form').onsubmit = (e) => {
+                        e.preventDefault();
+                        const email = document.getElementById('auth-email').value;
+                        app.state.user = { name: email.split('@')[0], email };
+                        localStorage.setItem('fs_user', JSON.stringify(app.state.user));
+                        app.toast(`Welcome, ${app.state.user.name}!`);
+                        app.router.navigate('dashboard');
+                    };
+                },
+                logout() {
+                    app.state.user = null;
+                    localStorage.removeItem('fs_user');
+                    app.toast('Logged out successfully.');
+                    app.router.navigate('landing');
+                }
+            },
+
+            dashboard: {
+                render() {
+                    document.getElementById('user-name').innerText = app.state.user.name;
+                    document.getElementById('user-avatar').innerText = app.state.user.name[0].toUpperCase();
+                    
+                    const pList = document.getElementById('project-list');
+                    pList.innerHTML = app.state.projects.map(p => `
+                        <div class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full ${p.color} ring-2 ring-white/10"></span> ${p.name}
+                        </div>
+                    `).join('');
+                    
+                    this.renderBoard();
+                },
+
+                renderBoard() {
+                    const board = document.getElementById('kanban-board');
+                    board.innerHTML = '';
+                    
+                    app.state.columns.forEach(col => {
+                        const tasks = app.state.tasks.filter(t => t.colId === col.id);
+                        const colHtml = document.createElement('div');
+                        colHtml.className = "w-80 flex-shrink-0 flex flex-col h-full";
+                        colHtml.innerHTML = `
+                            <div class="flex items-center justify-between mb-4 px-1">
+                                <h3 class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                    ${col.title} <span class="bg-slate-200 dark:bg-white/10 text-xs px-2 py-0.5 rounded-full">${tasks.length}</span>
+                                </h3>
+                                <button onclick="app.dashboard.openAddTaskModal('${col.id}')" class="text-slate-400 hover:text-brand-500 transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                            </div>
+                            <div class="flex-1 column-body space-y-3 pb-20" data-col-id="${col.id}"
+                                ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                                ondragleave="this.classList.remove('drag-over')"
+                                ondrop="app.dashboard.drop(event)">
+                            </div>
+                        `;
+                        
+                        const container = colHtml.querySelector('.column-body');
+                        
+                        if(tasks.length === 0) {
+                            container.innerHTML = `
+                                <div class="h-32 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center text-slate-400">
+                                    <i data-lucide="ghost" class="w-6 h-6 mb-2 opacity-50"></i>
+                                    <span class="text-xs">Kosong</span>
+                                </div>
+                            `;
+                        }
+
+                        tasks.forEach(t => {
+                            const card = document.createElement('div');
+                            card.className = "task-card bg-white dark:bg-dark-surface p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 group hover:border-brand-400 dark:hover:border-brand-500/50 transition relative";
+                            card.draggable = true;
+                            card.id = t.id;
+                            
+                            const tagStyle = t.tag === 'Urgent' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' :
+                                           t.tag === 'Design' ? 'bg-pink-100 text-pink-600 dark:bg-pink-500/20 dark:text-pink-400' : 
+                                           'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400';
+
+                            card.innerHTML = `
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${tagStyle}">${t.tag}</span>
+                                    <button onclick="app.dashboard.deleteTask('${t.id}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                                </div>
+                                <h4 class="font-bold text-slate-800 dark:text-slate-100 mb-3 leading-snug">${t.title}</h4>
+                                <div class="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-white/5">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-indigo-500 border-2 border-white dark:border-dark-surface"></div>
+                                        <div class="w-6 h-6 rounded-full bg-green-500 border-2 border-white dark:border-dark-surface"></div>
+                                    </div>
+                                    <i data-lucide="message-square" class="w-4 h-4 text-slate-300"></i>
+                                </div>
+                            `;
+                            
+                            card.addEventListener('dragstart', (e) => {
+                                e.dataTransfer.setData('text/plain', t.id);
+                                setTimeout(() => card.classList.add('dragging'), 0);
+                            });
+                            card.addEventListener('dragend', () => {
+                                card.classList.remove('dragging');
+                                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                            });
+                            
+                            container.appendChild(card);
+                        });
+                        
+                        board.appendChild(colHtml);
+                    });
+                    lucide.createIcons();
+                },
+
+                drop(e) {
+                    e.preventDefault();
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    const target = e.target.closest('.column-body');
+                    
+                    if(target) {
+                        target.classList.remove('drag-over');
+                        const newCol = target.dataset.colId;
+                        const task = app.state.tasks.find(t => t.id === taskId);
+                        
+                        if(task && task.colId !== newCol) {
+                            task.colId = newCol;
+                            app.save();
+                            this.renderBoard();
+                            
+                            // CONFETTI EFFECT IF MOVED TO DONE (c4)
+                            if(newCol === 'c4') {
+                                confetti.fire(e.clientX, e.clientY);
+                                app.toast('Task Completed! 🎉');
+                            }
+                        }
+                    }
+                },
+
+                deleteTask(id) {
+                    if(confirm('Hapus tugas ini?')) {
+                        app.state.tasks = app.state.tasks.filter(t => t.id !== id);
+                        app.save();
+                        this.renderBoard();
+                    }
+                },
+
+                openAddTaskModal(colId = 'c1') {
+                    const root = document.getElementById('modal-root');
+                    root.innerHTML = '';
+                    root.appendChild(document.getElementById('modal-add-task').content.cloneNode(true));
+                    document.getElementById('task-col-id').value = colId;
+                    lucide.createIcons();
+                },
+
+                closeModal() {
+                    document.getElementById('modal-root').innerHTML = '';
+                },
+
+                handleAddTaskSubmit(e) {
+                    e.preventDefault();
+                    const title = document.getElementById('task-title').value;
+                    const tag = document.getElementById('task-tag').value;
+                    const colId = document.getElementById('task-col-id').value;
+                    
+                    app.state.tasks.push({
+                        id: 't' + Date.now(),
+                        colId, title, tag
+                    });
+                    app.save();
+                    this.closeModal();
+                    this.renderBoard();
+                    app.toast('Task Created');
+                }
+            }
+        };
+
+        // START
+        app.init();
+    </script>
+</body>
+</html>

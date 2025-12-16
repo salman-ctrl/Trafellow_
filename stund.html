@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StuntGuard Pro - Integrated Prevention System</title>
+    
+    <!-- =========================================
+         LIBRARIES & DEPENDENCIES
+    ========================================== -->
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Phosphor Icons (Medical Grade Icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Google Fonts: Plus Jakarta Sans (Modern, Clean, Trustworthy) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        // Primary Brand Color (Trustworthy Blue)
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        // Medical & Status Indicators
+                        success: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 700: '#15803d' },
+                        warning: { 50: '#fefce8', 100: '#fef9c3', 500: '#eab308', 700: '#a16207' },
+                        danger:  { 50: '#fef2f2', 100: '#fee2e2', 500: '#ef4444', 700: '#b91c1c' },
+                        info:    { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 700: '#1d4ed8' },
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(14, 165, 233, 0.3)',
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                        'slide-down': 'slideDown 0.3s ease-out forwards',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideDown: {
+                            '0%': { transform: 'translateY(-20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* =========================================
+           CUSTOM CSS & GLASSMORPHISM ENGINE
+        ========================================== */
+        body {
+            background-color: #F8FAFC;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Glassmorphism Classes */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(226, 232, 240, 0.6);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Chart Tooltip Customization */
+        #chartjs-tooltip {
+            opacity: 1;
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1e293b;
+            border-radius: 8px;
+            pointer-events: none;
+            transform: translate(-50%, 0);
+            transition: all .1s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            z-index: 100;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Hide scrollbar for mobile horizontal scroll */
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Chat Bubble Styles */
+        .chat-bubble {
+            position: relative;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .chat-bubble.sent {
+            background-color: #0ea5e9;
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+        }
+        .chat-bubble.received {
+            background-color: #f1f5f9;
+            color: #334155;
+            border-bottom-left-radius: 4px;
+            margin-right: auto;
+        }
+
+        /* Loader Animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #0ea5e9;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-600 antialiased selection:bg-brand-200 selection:text-brand-900">
+
+    <!-- =========================================
+         APP LAYOUT & STRUCTURE
+    ========================================== -->
+    <div id="app" class="flex h-screen w-full relative overflow-hidden">
+
+        <!-- BACKGROUND ACCENTS -->
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+
+        <!-- 1. DESKTOP SIDEBAR -->
+        <aside class="hidden md:flex flex-col w-72 h-full glass-sidebar fixed z-50 transition-all duration-300 shadow-soft">
+            <!-- Brand Header -->
+            <div class="h-24 flex items-center px-8">
+                <div class="w-12 h-12 bg-gradient-to-tr from-brand-500 to-brand-400 rounded-2xl flex items-center justify-center text-white text-2xl mr-3 shadow-glow">
+                    <i class="ph-fill ph-baby"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-800 text-xl tracking-tight leading-none">StuntGuard</h1>
+                    <p class="text-[10px] text-brand-600 font-bold tracking-widest uppercase mt-1">Pro System</p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar">
+                <div class="px-4 mb-2">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monitoring</p>
+                </div>
+                
+                <button onclick="App.router.go('dashboard')" id="nav-d-dashboard" class="w-full nav-item active group flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200">
+                    <i class="ph ph-squares-four text-xl"></i> 
+                    <span>Dashboard</span>
+                    <i class="ph-fill ph-caret-right ml-auto opacity-0 group-[.active]:opacity-100 transition-opacity text-brand-500"></i>
+                </button>
+                
+                <button onclick="App.router.go('growth')" id="nav-d-growth" class="w-full nav-item group flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200">
+                    <i class="ph ph-chart-line-up text-xl"></i>
+                    <span>Digital KMS</span>
+                </button>
+
+                <div class="px-4 mb-2 mt-6">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nutrisi & Kesehatan</p>
+                </div>
+
+                <button onclick="App.router.go('meal')" id="nav-d-meal" class="w-full nav-item group flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200">
+                    <i class="ph ph-bowl-food text-xl"></i>
+                    <span>Meal Planner</span>
+                </button>
+                
+                <button onclick="App.router.go('vaccine')" id="nav-d-vaccine" class="w-full nav-item group flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200">
+                    <i class="ph ph-syringe text-xl"></i>
+                    <span>Imunisasi</span>
+                </button>
+
+                <div class="px-4 mb-2 mt-6">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bantuan</p>
+                </div>
+
+                <button onclick="App.router.go('chat')" id="nav-d-chat" class="w-full nav-item group flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold text-rose-500 hover:bg-rose-50 transition-all duration-200">
+                    <i class="ph ph-chat-circle-text text-xl"></i>
+                    <span>Konsultasi Bidan</span>
+                    <span id="unread-badge-d" class="hidden ml-auto bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-md">2</span>
+                </button>
+            </nav>
+
+            <!-- User Profile Footer -->
+            <div class="p-4 border-t border-slate-200/60 bg-white/50">
+                <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white transition-colors cursor-pointer" onclick="App.ui.openSettings()">
+                    <img src="https://ui-avatars.com/api/?name=Siti+Aminah&background=0ea5e9&color=fff" alt="User" class="w-10 h-10 rounded-full shadow-sm">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 truncate" id="sidebar-username">Ibu Siti Aminah</p>
+                        <p class="text-xs text-slate-500 truncate" id="sidebar-childname">Budi (12 Bln)</p>
+                    </div>
+                    <i class="ph ph-gear text-slate-400"></i>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 2. MAIN CONTENT WRAPPER -->
+        <main class="flex-1 md:ml-72 relative h-full overflow-hidden flex flex-col bg-slate-50/50">
+            
+            <!-- Mobile Header (Sticky) -->
+            <header class="md:hidden flex-none sticky top-0 z-40 glass border-b border-slate-200 px-5 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-brand-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                        <i class="ph-fill ph-baby"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-slate-800 text-lg leading-tight">StuntGuard</h1>
+                        <p class="text-[10px] text-slate-500 font-medium">Online Mode</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="App.router.go('chat')" class="w-9 h-9 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-600 relative active:scale-95 transition-transform">
+                        <i class="ph ph-chat-circle-dots text-lg"></i>
+                        <span id="unread-badge-m" class="hidden absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <button onclick="App.ui.openSettings()" class="w-9 h-9 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-600 active:scale-95 transition-transform">
+                        <i class="ph ph-gear text-lg"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dynamic Content Area (Scrollable) -->
+            <div id="content-area" class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4 md:p-8 pb-32 md:pb-10 relative scroll-smooth">
+                <!-- Content injected via JavaScript -->
+            </div>
+
+        </main>
+
+        <!-- 3. MOBILE BOTTOM NAVIGATION -->
+        <nav class="md:hidden fixed bottom-6 left-4 right-4 z-50">
+            <div class="glass bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 flex justify-between px-6 py-3 border border-white/50">
+                <button onclick="App.router.go('dashboard')" id="nav-m-dashboard" class="nav-item-m flex flex-col items-center gap-1 transition-all group">
+                    <div class="p-1 rounded-lg group-[.active]:bg-brand-50 transition-colors">
+                        <i class="ph-fill ph-house text-2xl group-[.active]:text-brand-600 text-slate-300"></i>
+                    </div>
+                </button>
+                
+                <button onclick="App.router.go('growth')" id="nav-m-growth" class="nav-item-m flex flex-col items-center gap-1 transition-all group">
+                     <div class="p-1 rounded-lg group-[.active]:bg-brand-50 transition-colors">
+                        <i class="ph-fill ph-chart-line-up text-2xl group-[.active]:text-brand-600 text-slate-300"></i>
+                    </div>
+                </button>
+                
+                <!-- Center Floating Action Button -->
+                <div class="relative -top-8">
+                    <button onclick="App.ui.modals.input.open()" class="w-14 h-14 bg-brand-500 rounded-full shadow-lg shadow-brand-500/40 border-4 border-[#F8FAFC] flex items-center justify-center text-white text-2xl transform active:scale-90 transition-all hover:rotate-90 duration-300">
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+                </div>
+
+                <button onclick="App.router.go('meal')" id="nav-m-meal" class="nav-item-m flex flex-col items-center gap-1 transition-all group">
+                     <div class="p-1 rounded-lg group-[.active]:bg-brand-50 transition-colors">
+                        <i class="ph-fill ph-bowl-food text-2xl group-[.active]:text-brand-600 text-slate-300"></i>
+                    </div>
+                </button>
+                
+                <button onclick="App.router.go('vaccine')" id="nav-m-vaccine" class="nav-item-m flex flex-col items-center gap-1 transition-all group">
+                     <div class="p-1 rounded-lg group-[.active]:bg-brand-50 transition-colors">
+                        <i class="ph-fill ph-syringe text-2xl group-[.active]:text-brand-600 text-slate-300"></i>
+                    </div>
+                </button>
+            </div>
+        </nav>
+
+        <!-- =========================================
+             MODAL OVERLAYS
+        ========================================== -->
+        
+        <!-- 1. INPUT DATA MODAL -->
+        <div id="modal-input" class="fixed inset-0 z-[60] hidden transition-opacity duration-300 opacity-0" aria-hidden="true">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="App.ui.modals.input.close()"></div>
+            <div class="absolute bottom-0 md:top-1/2 md:left-1/2 md:bottom-auto md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[480px] bg-white rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden transform transition-transform duration-300 translate-y-full md:translate-y-0 scale-95">
+                
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-brand-500 to-brand-600 p-6 text-white flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold">Input Pengukuran</h3>
+                        <p class="text-brand-100 text-xs">Update data terbaru anak</p>
+                    </div>
+                    <button onclick="App.ui.modals.input.close()" class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"><i class="ph-bold ph-x"></i></button>
+                </div>
+
+                <!-- Form -->
+                <form onsubmit="App.controllers.handleInputSubmit(event)" class="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                    <!-- Date & Age -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Tanggal</label>
+                            <input type="date" id="inp-date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Usia (Bulan)</label>
+                            <input type="number" id="inp-age" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all font-bold text-slate-700">
+                        </div>
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Berat Badan</label>
+                            <input type="number" step="0.01" id="inp-weight" placeholder="0.00" required class="w-full pl-4 pr-12 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none shadow-sm">
+                            <span class="absolute right-4 bottom-3.5 text-sm font-bold text-slate-400">KG</span>
+                        </div>
+                        
+                        <div class="relative">
+                            <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Tinggi Badan</label>
+                            <input type="number" step="0.1" id="inp-height" placeholder="0.0" required class="w-full pl-4 pr-12 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none shadow-sm">
+                            <span class="absolute right-4 bottom-3.5 text-sm font-bold text-slate-400">CM</span>
+                        </div>
+                        
+                        <div class="relative">
+                            <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Lingkar Kepala</label>
+                            <input type="number" step="0.1" id="inp-head" placeholder="0.0" class="w-full pl-4 pr-12 py-3.5 bg-white border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none shadow-sm">
+                            <span class="absolute right-4 bottom-3.5 text-sm font-bold text-slate-400">CM</span>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="w-full py-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-all flex justify-center items-center gap-2">
+                        <i class="ph-bold ph-floppy-disk"></i> Simpan Data
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. RECIPE DETAIL MODAL -->
+        <div id="modal-recipe" class="fixed inset-0 z-[60] hidden transition-opacity duration-300 opacity-0">
+             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="App.ui.modals.recipe.close()"></div>
+             <div class="absolute top-0 right-0 h-full w-full md:w-[500px] bg-white shadow-2xl transform transition-transform duration-300 translate-x-full overflow-y-auto" id="modal-recipe-panel">
+                <div id="recipe-content-injection">
+                    <!-- Dynamic Recipe Content -->
+                </div>
+             </div>
+        </div>
+
+        <!-- 3. TOAST NOTIFICATION -->
+        <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[70] flex flex-col gap-2 pointer-events-none w-full max-w-sm px-4"></div>
+
+    </div>
+
+    <!-- =========================================
+         ENGINE CORE (JAVASCRIPT)
+    ========================================== -->
+    <script>
+        /**
+         * STUNTGUARD PRO - ENGINEERING LOG
+         * 1. Namespace Pattern used to avoid global scope pollution (App.xxx)
+         * 2. LocalStorage used for persistence
+         * 3. Z-Score logic implemented based on simplified WHO standards
+         */
+
+        const App = {
+            // --- 1. DATA STORE (CONSTANTS) ---
+            data: {
+                // Simplified WHO Standards (Median & -2SD for Boys 0-24 Months)
+                // Format: [Month]: { median: kg, stunting: kg }
+                standards: {
+                    weight: {
+                        median: [3.3, 4.5, 5.6, 6.4, 7.0, 7.5, 7.9, 8.3, 8.6, 8.9, 9.2, 9.4, 9.6, 9.9, 10.1, 10.3, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.8, 12.0, 12.2],
+                        stunting: [2.5, 3.4, 4.3, 5.0, 5.6, 6.0, 6.4, 6.7, 6.9, 7.1, 7.4, 7.6, 7.7, 7.9, 8.1, 8.3, 8.4, 8.6, 8.8, 8.9, 9.1, 9.2, 9.4, 9.5, 9.7]
+                    },
+                    height: {
+                        median: [49.9, 54.7, 58.4, 61.4, 63.9, 65.9, 67.6, 69.2, 70.6, 72.0, 73.3, 74.5, 75.7, 76.9, 78.0, 79.1, 80.2, 81.2, 82.3, 83.2, 84.2, 85.1, 86.0, 86.9, 87.8],
+                        stunting: [46.1, 50.8, 54.4, 57.3, 59.7, 61.7, 63.3, 64.8, 66.2, 67.5, 68.7, 69.9, 71.0, 72.1, 73.1, 74.1, 75.0, 76.0, 76.9, 77.7, 78.6, 79.4, 80.2, 81.0, 81.7]
+                    }
+                },
+                
+                recipes: [
+                    {
+                        id: 1,
+                        name: "Nugget Lele Kelor",
+                        tags: ["Protein Tinggi", "Lokal", "Anti-Stunting"],
+                        image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=600",
+                        desc: "Olahan ikan lele yang disamarkan menjadi nugget, dicampur daun kelor untuk zat besi.",
+                        ingredients: ["250gr Ikan Lele Fillet", "1 genggam Daun Kelor (rebus, cincang)", "2 butir Telur", "3 sdm Tepung Tapioka", "Bawang Putih & Merah", "Tepung Panir"],
+                        steps: ["Haluskan fillet lele dengan bawang.", "Campur dengan telur, tapioka, dan daun kelor.", "Kukus adonan selama 20 menit.", "Potong-potong, celup telur, gulingkan ke tepung panir.", "Goreng hingga keemasan."],
+                        recommendedFor: "stunting"
+                    },
+                    {
+                        id: 2,
+                        name: "Sup Telur Puyuh & Bayam",
+                        tags: ["Booster BB", "Zat Besi"],
+                        image: "https://images.unsplash.com/photo-1547592166-23acbe3b624b?auto=format&fit=crop&q=80&w=600",
+                        desc: "Menu kuah segar. Telur puyuh memiliki kalori padat, bayam kaya zat besi.",
+                        ingredients: ["10 butir Telur Puyuh (rebus)", "1 ikat Bayam", "1 buah Jagung Manis", "Kaldu Ayam Asli"],
+                        steps: ["Didihkan kaldu ayam.", "Masukkan jagung manis pipil.", "Masukkan telur puyuh.", "Terakhir masukkan bayam, masak sebentar saja agar vitamin tidak rusak."],
+                        recommendedFor: "normal"
+                    },
+                    {
+                        id: 3,
+                        name: "Bola Daging Tempe",
+                        tags: ["Protein Nabati", "Murah"],
+                        image: "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&q=80&w=600",
+                        desc: "Perpaduan daging sapi giling dan tempe untuk tekstur yang lebih empuk.",
+                        ingredients: ["100gr Daging Sapi Giling", "1/2 papan Tempe (kukus, haluskan)", "1 butir Telur", "Saus Tomat buatan sendiri"],
+                        steps: ["Campur daging dan tempe halus.", "Bentuk bola-bola kecil.", "Tumis bawang bombay, masukkan saus tomat.", "Masak bola daging dalam saus hingga matang."],
+                        recommendedFor: "stunting"
+                    },
+                    {
+                        id: 4,
+                        name: "Puding Buah Naga Susu",
+                        tags: ["Snack Sehat", "Vitamin"],
+                        image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&q=80&w=600",
+                        desc: "Cemilan segar tinggi serat dan vitamin C untuk daya tahan tubuh.",
+                        ingredients: ["1/2 buah Naga Merah", "250ml Susu UHT/ASI", "Agar-agar plain"],
+                        steps: ["Blender buah naga dengan sedikit air.", "Masak agar-agar dengan susu.", "Campurkan jus buah naga.", "Dinginkan di cetakan."],
+                        recommendedFor: "normal"
+                    }
+                ],
+
+                vaccines: [
+                    { id: 'hb0', name: "Hepatitis B0", age: 0, desc: "Segera setelah lahir (<24 jam)" },
+                    { id: 'bcg', name: "BCG", age: 1, desc: "Mencegah TBC" },
+                    { id: 'pol1', name: "Polio Tetes 1", age: 1, desc: "Mencegah lumpuh layu" },
+                    { id: 'dpt1', name: "DPT-HB-Hib 1", age: 2, desc: "Difteri, Pertusis, Tetanus" },
+                    { id: 'pol2', name: "Polio Tetes 2", age: 2, desc: "Dosis ke-2" },
+                    { id: 'pcv1', name: "PCV 1", age: 2, desc: "Pneumonia (Radang Paru)" },
+                    { id: 'dpt2', name: "DPT-HB-Hib 2", age: 3, desc: "Dosis ke-2" },
+                    { id: 'dpt3', name: "DPT-HB-Hib 3", age: 4, desc: "Dosis ke-3" },
+                    { id: 'mr', name: "Campak Rubella", age: 9, desc: "Mencegah Campak" }
+                ]
+            },
+
+            // --- 2. STATE MANAGEMENT (LOCAL STORAGE) ---
+            state: {
+                user: {
+                    parentName: "Siti Aminah",
+                    childName: "Budi",
+                    dob: "2024-11-05" // Assuming ~13 months old from now
+                },
+                records: [], // Array of measurement objects
+                vaccineStatus: {}, // Map of vaccine ID -> boolean/date
+                chatHistory: [], // Messages
+                
+                init() {
+                    // Load from LocalStorage or Set Defaults
+                    const saved = localStorage.getItem('stuntguard_data');
+                    if(saved) {
+                        const parsed = JSON.parse(saved);
+                        this.user = parsed.user;
+                        this.records = parsed.records;
+                        this.vaccineStatus = parsed.vaccineStatus || {};
+                        this.chatHistory = parsed.chatHistory || [];
+                    } else {
+                        // Seed Initial Data if Empty
+                        this.seedData();
+                    }
+                },
+
+                save() {
+                    localStorage.setItem('stuntguard_data', JSON.stringify({
+                        user: this.user,
+                        records: this.records,
+                        vaccineStatus: this.vaccineStatus,
+                        chatHistory: this.chatHistory
+                    }));
+                },
+
+                seedData() {
+                    // Create realistic history for the past 12 months
+                    const today = new Date();
+                    for(let i=0; i<=12; i++) {
+                        const date = new Date(today);
+                        date.setMonth(today.getMonth() - (12-i));
+                        
+                        // Fake growth curve (slightly fluctuating)
+                        let baseWeight = 3.2 + (i * 0.5) + (Math.random() * 0.2);
+                        let baseHeight = 50 + (i * 2) + (Math.random() * 0.5);
+
+                        // Make month 11 & 12 stagnant to simulate stunting risk
+                        if(i > 10) {
+                            baseWeight = this.records[10].weight + 0.05; // Very little gain
+                        }
+
+                        this.records.push({
+                            id: Date.now() + i,
+                            date: date.toISOString().split('T')[0],
+                            age: i,
+                            weight: parseFloat(baseWeight.toFixed(2)),
+                            height: parseFloat(baseHeight.toFixed(1)),
+                            head: parseFloat((35 + i).toFixed(1))
+                        });
+                    }
+                    
+                    // Seed initial chat
+                    this.chatHistory = [
+                        { sender: 'bot', text: 'Halo Ibu Siti, selamat datang di layanan Bidan Virtual. Ada yang bisa saya bantu hari ini?', time: '08:00' }
+                    ];
+
+                    this.save();
+                },
+
+                addRecord(record) {
+                    this.records.push(record);
+                    this.records.sort((a,b) => a.age - b.age); // Keep sorted by age
+                    this.save();
+                },
+
+                toggleVaccine(id) {
+                    if(this.vaccineStatus[id]) {
+                        delete this.vaccineStatus[id];
+                    } else {
+                        this.vaccineStatus[id] = new Date().toISOString().split('T')[0];
+                    }
+                    this.save();
+                },
+
+                addMessage(msg) {
+                    this.chatHistory.push(msg);
+                    this.save();
+                }
+            },
+
+            // --- 3. UTILITIES ---
+            utils: {
+                calculateStatus(age, weight, height) {
+                    // Simple Z-Score Logic
+                    // < -2SD = Stunting/Underweight
+                    const wStandard = App.data.standards.weight.stunting[age] || 100;
+                    const hStandard = App.data.standards.height.stunting[age] || 100;
+                    
+                    let status = "Normal";
+                    let color = "success";
+                    
+                    if (weight < wStandard) {
+                        status = "Gizi Kurang";
+                        color = "warning";
+                    }
+                    if (weight < wStandard * 0.9) { // Severely underweight logic simulation
+                        status = "Stunting Berat";
+                        color = "danger";
+                    }
+                    
+                    return { status, color };
+                },
+
+                formatDate(dateStr) {
+                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    return new Date(dateStr).toLocaleDateString('id-ID', options);
+                },
+
+                showToast(message, type = 'info') {
+                    const container = document.getElementById('toast-container');
+                    const el = document.createElement('div');
+                    
+                    let bg = type === 'success' ? 'bg-green-500' : (type === 'error' ? 'bg-rose-500' : 'bg-slate-800');
+                    
+                    el.className = `${bg} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-down transform transition-all`;
+                    el.innerHTML = `
+                        <i class="ph-bold ${type === 'success' ? 'ph-check' : 'ph-info'}"></i>
+                        <span class="text-sm font-medium">${message}</span>
+                    `;
+                    
+                    container.appendChild(el);
+                    
+                    // Remove after 3s
+                    setTimeout(() => {
+                        el.style.opacity = '0';
+                        el.style.transform = 'translateY(-10px)';
+                        setTimeout(() => el.remove(), 300);
+                    }, 3000);
+                }
+            },
+
+            // --- 4. UI CONTROLLERS ---
+            router: {
+                go(route) {
+                    // Update Active Nav (Desktop)
+                    document.querySelectorAll('.nav-item').forEach(el => {
+                        if (el.classList) {
+                            el.classList.remove('active', 'bg-brand-50', 'text-brand-600');
+                            el.classList.add('text-slate-500', 'hover:bg-slate-50');
+                        }
+                    });
+                    
+                    const activeD = document.getElementById(`nav-d-${route}`);
+                    if(activeD && activeD.classList) {
+                        activeD.classList.add('active', 'bg-brand-50', 'text-brand-600');
+                        activeD.classList.remove('text-slate-500', 'hover:bg-slate-50');
+                    }
+
+                    // Mobile Nav Updates (Safe Navigation with Defensive Coding)
+                    // Fix: Check for classList existence before accessing remove/add to prevent TypeError
+                    document.querySelectorAll('.nav-item-m div').forEach(el => {
+                        if (el && el.classList) el.classList.remove('bg-brand-50');
+                    });
+                    
+                    document.querySelectorAll('.nav-item-m i, .nav-item-m svg').forEach(el => {
+                        if (el && el.classList) el.classList.remove('text-brand-600');
+                    });
+                    
+                    const activeM = document.getElementById(`nav-m-${route}`);
+                    if(activeM) {
+                        const div = activeM.querySelector('div');
+                        if(div && div.classList) div.classList.add('bg-brand-50');
+                        
+                        // Handle Icon (i or svg if replaced by Phosphor)
+                        const icon = activeM.querySelector('i') || activeM.querySelector('svg');
+                        // Fix: Ensure icon exists AND has classList property
+                        if(icon && icon.classList) {
+                            icon.classList.add('text-brand-600');
+                        }
+                    }
+
+                    // Content Rendering
+                    const content = document.getElementById('content-area');
+                    content.innerHTML = '<div class="flex justify-center pt-20"><div class="loader"></div></div>'; // Loading state
+                    
+                    // Simulate route transition
+                    setTimeout(() => {
+                        content.innerHTML = ''; // Clear
+                        switch(route) {
+                            case 'dashboard': App.renderers.dashboard(); break;
+                            case 'growth': App.renderers.growth(); break;
+                            case 'meal': App.renderers.meal(); break;
+                            case 'vaccine': App.renderers.vaccine(); break;
+                            case 'chat': App.renderers.chat(); break;
+                        }
+                        // Trigger Animation
+                        if(content.firstChild) {
+                            content.firstChild.classList.add('animate-fade-in');
+                        }
+                    }, 200);
+                }
+            },
+
+            ui: {
+                modals: {
+                    input: {
+                        open: () => {
+                            const m = document.getElementById('modal-input');
+                            m.classList.remove('hidden');
+                            // Populate date today
+                            document.getElementById('inp-date').valueAsDate = new Date();
+                            setTimeout(() => {
+                                m.classList.remove('opacity-0');
+                                m.children[1].classList.remove('translate-y-full', 'scale-95');
+                            }, 10);
+                        },
+                        close: () => {
+                            const m = document.getElementById('modal-input');
+                            m.classList.add('opacity-0');
+                            m.children[1].classList.add('translate-y-full', 'scale-95');
+                            setTimeout(() => m.classList.add('hidden'), 300);
+                        }
+                    },
+                    recipe: {
+                        open: (id) => {
+                            const r = App.data.recipes.find(x => x.id === id);
+                            const m = document.getElementById('modal-recipe');
+                            const p = document.getElementById('modal-recipe-panel');
+                            const c = document.getElementById('recipe-content-injection');
+
+                            // Build Content
+                            c.innerHTML = `
+                                <div class="relative h-64">
+                                    <img src="${r.image}" class="w-full h-full object-cover">
+                                    <button onclick="App.ui.modals.recipe.close()" class="absolute top-4 left-4 bg-white/30 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/50 transition"><i class="ph-bold ph-arrow-left"></i></button>
+                                </div>
+                                <div class="p-6 md:p-8 -mt-6 bg-white rounded-t-3xl relative z-10 min-h-[500px]">
+                                    <div class="flex gap-2 mb-4">
+                                        ${r.tags.map(t => `<span class="bg-brand-50 text-brand-600 px-2 py-1 rounded text-xs font-bold">${t}</span>`).join('')}
+                                    </div>
+                                    <h2 class="text-2xl font-bold text-slate-800 mb-2">${r.name}</h2>
+                                    <p class="text-slate-500 mb-6 leading-relaxed">${r.desc}</p>
+                                    
+                                    <div class="mb-6">
+                                        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="ph-fill ph-basket"></i> Bahan-bahan</h3>
+                                        <ul class="space-y-2">
+                                            ${r.ingredients.map(i => `<li class="flex items-start gap-2 text-sm text-slate-600"><span class="w-1.5 h-1.5 rounded-full bg-brand-400 mt-1.5"></span> ${i}</li>`).join('')}
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="ph-fill ph-cooking-pot"></i> Cara Membuat</h3>
+                                        <div class="space-y-4">
+                                            ${r.steps.map((s, idx) => `
+                                                <div class="flex gap-3">
+                                                    <span class="flex-none w-6 h-6 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center">${idx+1}</span>
+                                                    <p class="text-sm text-slate-600 leading-relaxed">${s}</p>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+
+                            m.classList.remove('hidden');
+                            setTimeout(() => {
+                                m.classList.remove('opacity-0');
+                                p.classList.remove('translate-x-full');
+                            }, 10);
+                        },
+                        close: () => {
+                            const m = document.getElementById('modal-recipe');
+                            const p = document.getElementById('modal-recipe-panel');
+                            p.classList.add('translate-x-full');
+                            m.classList.add('opacity-0');
+                            setTimeout(() => m.classList.add('hidden'), 300);
+                        }
+                    }
+                },
+                openSettings: () => {
+                    alert("Fitur Pengaturan Profil akan segera hadir di versi 2.0!");
+                }
+            },
+
+            // --- 5. RENDERERS (THE VIEW LAYER) ---
+            renderers: {
+                dashboard() {
+                    const latest = App.state.records[App.state.records.length - 1];
+                    const prev = App.state.records[App.state.records.length - 2] || latest;
+                    const { status, color } = App.utils.calculateStatus(latest.age, latest.weight, latest.height);
+
+                    // Calculate Gain
+                    const weightDiff = (latest.weight - prev.weight).toFixed(2);
+                    const isGain = weightDiff >= 0;
+
+                    const html = `
+                    <div class="space-y-6">
+                        <!-- Welcome Header -->
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">Ringkasan Medis</h2>
+                                <p class="text-sm text-slate-500">Pantau perkembangan ${App.state.user.childName} hari ini.</p>
+                            </div>
+                            <span class="bg-${color}-100 text-${color}-700 px-3 py-1 rounded-full text-xs font-bold border border-${color}-200 animate-pulse-slow">
+                                ${status}
+                            </span>
+                        </div>
+
+                        <!-- 3 Cards Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Weight Card -->
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+                                <div class="absolute right-[-20px] top-[-20px] w-24 h-24 bg-blue-50 rounded-full group-hover:scale-110 transition-transform"></div>
+                                <div class="relative z-10">
+                                    <div class="flex gap-2 items-center text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+                                        <i class="ph-fill ph-scales text-lg text-blue-500"></i> Berat Badan
+                                    </div>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-3xl font-bold text-slate-800">${latest.weight}</span>
+                                        <span class="text-sm font-bold text-slate-400">Kg</span>
+                                    </div>
+                                    <div class="mt-2 flex items-center gap-1 text-xs font-bold ${isGain ? 'text-green-500' : 'text-rose-500'}">
+                                        <i class="ph-bold ${isGain ? 'ph-trend-up' : 'ph-trend-down'}"></i>
+                                        ${Math.abs(weightDiff)} Kg bulan ini
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Height Card -->
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+                                <div class="absolute right-[-20px] top-[-20px] w-24 h-24 bg-purple-50 rounded-full group-hover:scale-110 transition-transform"></div>
+                                <div class="relative z-10">
+                                    <div class="flex gap-2 items-center text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+                                        <i class="ph-fill ph-ruler text-lg text-purple-500"></i> Tinggi Badan
+                                    </div>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-3xl font-bold text-slate-800">${latest.height}</span>
+                                        <span class="text-sm font-bold text-slate-400">Cm</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-2">Pertumbuhan linear stabil</p>
+                                </div>
+                            </div>
+
+                            <!-- Vaccine Card -->
+                            <div class="bg-gradient-to-br from-brand-500 to-brand-600 p-5 rounded-2xl shadow-lg shadow-brand-500/20 text-white relative overflow-hidden cursor-pointer" onclick="App.router.go('vaccine')">
+                                <div class="relative z-10">
+                                    <div class="flex gap-2 items-center text-brand-100 text-xs font-bold uppercase tracking-wider mb-2">
+                                        <i class="ph-fill ph-syringe text-lg"></i> Imunisasi Next
+                                    </div>
+                                    <h3 class="text-xl font-bold leading-tight mb-1">Campak Rubella</h3>
+                                    <p class="text-brand-100 text-xs mb-3">Jadwal: 05 Feb 2026</p>
+                                    <div class="inline-flex items-center gap-1 bg-white/20 px-2 py-1 rounded text-xs font-bold">
+                                        Lihat Jadwal <i class="ph-bold ph-arrow-right"></i>
+                                    </div>
+                                </div>
+                                <i class="ph-fill ph-calendar-check absolute -bottom-4 -right-4 text-[100px] text-white opacity-10 rotate-[-20deg]"></i>
+                            </div>
+                        </div>
+
+                        <!-- Chart Section -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-slate-700">Grafik Pertumbuhan (Berat)</h3>
+                                <button onclick="App.router.go('growth')" class="text-brand-600 text-xs font-bold hover:bg-brand-50 px-2 py-1 rounded transition">Detail Lengkap</button>
+                            </div>
+                            <div class="h-64 w-full">
+                                <canvas id="dashboard-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Recommendation Banner -->
+                        ${status !== 'Normal' ? `
+                        <div class="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-4 flex items-center gap-4 animate-slide-up">
+                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shadow-sm flex-none">
+                                🥣
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-orange-800 text-sm">Rekomendasi Menu Tersedia!</h4>
+                                <p class="text-xs text-orange-700 mt-0.5">Berdasarkan status gizi saat ini, kami menyarankan menu tinggi protein.</p>
+                            </div>
+                            <button onclick="App.router.go('meal')" class="bg-white text-orange-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm">Lihat</button>
+                        </div>
+                        ` : ''}
+                    </div>
+                    `;
+                    
+                    document.getElementById('content-area').innerHTML = html;
+                    
+                    // Render Chart
+                    setTimeout(() => {
+                        const ctx = document.getElementById('dashboard-chart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: App.state.records.map(r => `Bln ${r.age}`),
+                                datasets: [{
+                                    label: 'Berat (Kg)',
+                                    data: App.state.records.map(r => r.weight),
+                                    borderColor: '#0ea5e9',
+                                    backgroundColor: (context) => {
+                                        const ctx = context.chart.ctx;
+                                        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                                        gradient.addColorStop(0, 'rgba(14,165,233,0.3)');
+                                        gradient.addColorStop(1, 'rgba(14,165,233,0.0)');
+                                        return gradient;
+                                    },
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#fff',
+                                    pointBorderColor: '#0ea5e9',
+                                    pointBorderWidth: 2
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { font: {size: 10} } },
+                                    y: { grid: { color: '#f1f5f9' }, beginAtZero: false }
+                                }
+                            }
+                        });
+                    }, 50);
+                },
+
+                growth() {
+                    const html = `
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-2xl font-bold text-slate-800">Digital KMS</h2>
+                            <button onclick="App.ui.modals.input.open()" class="hidden md:flex bg-brand-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition items-center gap-2">
+                                <i class="ph-bold ph-plus"></i> Input Data
+                            </button>
+                        </div>
+
+                        <!-- Tab Switcher (Visual only for now, default weight) -->
+                        <div class="bg-white p-1 rounded-xl inline-flex border border-slate-200 shadow-sm">
+                            <button class="px-4 py-2 bg-brand-50 text-brand-700 rounded-lg text-sm font-bold shadow-sm">Berat</button>
+                            <button class="px-4 py-2 text-slate-500 hover:text-slate-700 rounded-lg text-sm font-medium transition">Tinggi</button>
+                            <button class="px-4 py-2 text-slate-500 hover:text-slate-700 rounded-lg text-sm font-medium transition">Kepala</button>
+                        </div>
+
+                        <!-- Main Chart Card -->
+                        <div class="bg-white p-4 md:p-6 rounded-3xl shadow-soft border border-slate-100">
+                             <!-- Legend -->
+                            <div class="flex flex-wrap gap-4 justify-center mb-6 text-[10px] md:text-xs font-bold uppercase tracking-wide text-slate-400">
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-brand-500"></span> Anak Anda</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-300"></span> Median WHO</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-400 opacity-50 border border-rose-400 border-dashed"></span> Batas Stunting</div>
+                            </div>
+
+                            <div class="h-[350px] w-full relative">
+                                <canvas id="kms-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- History Table -->
+                        <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden">
+                            <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800">Riwayat & Analisis</h3>
+                                <button class="text-brand-600 text-xs font-bold"><i class="ph-bold ph-download-simple"></i> Export PDF</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                                        <tr>
+                                            <th class="px-6 py-4">Usia (Bln)</th>
+                                            <th class="px-6 py-4">Berat (Kg)</th>
+                                            <th class="px-6 py-4">Tinggi (Cm)</th>
+                                            <th class="px-6 py-4">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 text-slate-600">
+                                        ${App.state.records.slice().reverse().map(r => {
+                                            const { status, color } = App.utils.calculateStatus(r.age, r.weight, r.height);
+                                            return `
+                                            <tr class="hover:bg-brand-50/30 transition-colors">
+                                                <td class="px-6 py-4 font-bold">Bulan ${r.age}</td>
+                                                <td class="px-6 py-4">${r.weight}</td>
+                                                <td class="px-6 py-4">${r.height}</td>
+                                                <td class="px-6 py-4">
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-${color}-100 text-${color}-700">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-${color}-500"></span> ${status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                    document.getElementById('content-area').innerHTML = html;
+
+                    // Init Complex Chart
+                    setTimeout(() => {
+                        const ctx = document.getElementById('kms-chart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: App.data.standards.weight.median.map((_, i) => `Bln ${i}`),
+                                datasets: [
+                                    {
+                                        label: 'Anak Anda',
+                                        data: App.state.records.map(r => ({x: `Bln ${r.age}`, y: r.weight})), // Scatter like
+                                        borderColor: '#0ea5e9',
+                                        backgroundColor: '#0ea5e9',
+                                        borderWidth: 3,
+                                        pointRadius: 5,
+                                        pointHoverRadius: 7,
+                                        fill: false,
+                                        tension: 0.3
+                                    },
+                                    {
+                                        label: 'Median WHO',
+                                        data: App.data.standards.weight.median,
+                                        borderColor: '#cbd5e1',
+                                        borderWidth: 2,
+                                        borderDash: [5, 5],
+                                        pointRadius: 0,
+                                        fill: false,
+                                        tension: 0.4
+                                    },
+                                    {
+                                        label: 'Batas Bawah (-2SD)',
+                                        data: App.data.standards.weight.stunting,
+                                        borderColor: '#f43f5e',
+                                        backgroundColor: 'rgba(244, 63, 94, 0.05)',
+                                        borderWidth: 1,
+                                        pointRadius: 0,
+                                        fill: true,
+                                        tension: 0.4
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false,
+                                        backgroundColor: 'rgba(255,255,255,0.95)',
+                                        titleColor: '#0f172a',
+                                        bodyColor: '#334155',
+                                        borderColor: '#e2e8f0',
+                                        borderWidth: 1
+                                    },
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    y: { grid: { color: '#f1f5f9' } }
+                                }
+                            }
+                        });
+                    }, 100);
+                },
+
+                meal() {
+                    const html = `
+                    <div class="space-y-6">
+                        <div class="md:flex justify-between items-end">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">Smart Meal Planner</h2>
+                                <p class="text-sm text-slate-500 mt-1">Resep lokal terjangkau untuk gizi optimal.</p>
+                            </div>
+                            
+                            <!-- Search Bar -->
+                            <div class="mt-4 md:mt-0 relative">
+                                <input type="text" placeholder="Cari resep (misal: Ikan, Tempe)..." class="pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-brand-500 w-full md:w-64 outline-none text-sm shadow-sm transition-shadow">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                            </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+                            <button class="flex-none px-4 py-2 bg-brand-600 text-white rounded-full text-xs font-bold shadow-md shadow-brand-500/20">Semua</button>
+                            <button class="flex-none px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-xs font-bold hover:bg-slate-50">Tinggi Protein</button>
+                            <button class="flex-none px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-xs font-bold hover:bg-slate-50">Sayuran</button>
+                            <button class="flex-none px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-xs font-bold hover:bg-slate-50">Snack Sehat</button>
+                        </div>
+
+                        <!-- Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            ${App.data.recipes.map((r, i) => `
+                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up" style="animation-delay: ${i*100}ms" onclick="App.ui.modals.recipe.open(${r.id})">
+                                <div class="h-40 overflow-hidden relative">
+                                    <img src="${r.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                        <span class="text-white text-xs font-bold">Lihat Detail <i class="ph-bold ph-arrow-right"></i></span>
+                                    </div>
+                                    ${r.recommendedFor === 'stunting' ? `<span class="absolute top-3 right-3 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md">Rekomen BB</span>` : ''}
+                                </div>
+                                <div class="p-4">
+                                    <div class="flex gap-1 mb-2">
+                                        ${r.tags.slice(0,2).map(t => `<span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">${t}</span>`).join('')}
+                                    </div>
+                                    <h3 class="font-bold text-slate-800 line-clamp-1 group-hover:text-brand-600 transition-colors">${r.name}</h3>
+                                    <p class="text-xs text-slate-500 mt-1 line-clamp-2">${r.desc}</p>
+                                </div>
+                            </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    `;
+                    document.getElementById('content-area').innerHTML = html;
+                },
+
+                vaccine() {
+                    const html = `
+                    <div class="space-y-6 max-w-4xl mx-auto">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl font-bold text-slate-800">Jadwal Imunisasi</h2>
+                            <p class="text-sm text-slate-500">Lengkapi perlindungan si kecil sesuai usia.</p>
+                        </div>
+
+                        <div class="relative pl-8 border-l-2 border-slate-200 space-y-8">
+                            ${App.data.vaccines.map((v, i) => {
+                                const isDone = App.state.vaccineStatus[v.id];
+                                const isNext = !isDone && !App.data.vaccines.slice(0, i).some(prev => !App.state.vaccineStatus[prev.id]);
+                                
+                                let statusClass = isDone ? 'bg-green-500 border-green-500 text-white' : (isNext ? 'bg-white border-brand-500 text-brand-500 animate-pulse' : 'bg-white border-slate-300 text-slate-300');
+                                let cardClass = isDone ? 'opacity-60 grayscale' : (isNext ? 'shadow-lg ring-2 ring-brand-100 bg-white' : 'bg-slate-50 opacity-80');
+
+                                return `
+                                <div class="relative group animate-slide-up" style="animation-delay: ${i*50}ms">
+                                    <!-- Timeline Node -->
+                                    <div class="absolute -left-[41px] top-4 w-6 h-6 rounded-full border-2 ${statusClass} flex items-center justify-center z-10 bg-white">
+                                        <i class="ph-bold ${isDone ? 'ph-check' : 'ph-circle'}"></i>
+                                    </div>
+
+                                    <!-- Content Card -->
+                                    <div class="flex flex-col sm:flex-row gap-4 p-5 rounded-2xl border border-slate-100 transition-all ${cardClass}">
+                                        <div class="flex-none text-center sm:text-left">
+                                            <div class="inline-block bg-brand-50 text-brand-700 text-[10px] font-bold uppercase px-2 py-1 rounded mb-1">Usia ${v.age} Bulan</div>
+                                            <h3 class="font-bold text-slate-800 text-lg">${v.name}</h3>
+                                            <p class="text-xs text-slate-500">${v.desc}</p>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-end">
+                                            <button onclick="App.controllers.toggleVaccine('${v.id}')" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${isDone ? 'bg-slate-100 text-slate-500' : 'bg-brand-600 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700'}">
+                                                ${isDone ? 'Sudah Diberikan' : 'Tandai Sudah'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                    `;
+                    document.getElementById('content-area').innerHTML = html;
+                },
+
+                chat() {
+                    const html = `
+                    <div class="h-full flex flex-col md:h-[calc(100vh-140px)] bg-white md:rounded-2xl md:shadow-sm md:border md:border-slate-200 overflow-hidden">
+                        <!-- Chat Header -->
+                        <div class="p-4 border-b border-slate-100 bg-white z-10 flex items-center gap-3 shadow-sm">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                                    <i class="ph-fill ph-headset text-xl"></i>
+                                </div>
+                                <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800">Bidan Virtual</h3>
+                                <p class="text-xs text-green-600 font-medium">Online • Membalas cepat</p>
+                            </div>
+                        </div>
+
+                        <!-- Chat Area -->
+                        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                            ${App.state.chatHistory.map(msg => `
+                                <div class="w-full flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}">
+                                    <div class="chat-bubble ${msg.sender === 'user' ? 'sent' : 'received shadow-sm border border-slate-200 bg-white'}">
+                                        <p>${msg.text}</p>
+                                        <span class="text-[9px] opacity-70 block text-right mt-1">${msg.time}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="p-4 bg-white border-t border-slate-100">
+                            <form onsubmit="App.controllers.sendChat(event)" class="flex gap-2">
+                                <button type="button" class="p-3 text-slate-400 hover:text-brand-500 transition"><i class="ph-bold ph-plus"></i></button>
+                                <input type="text" id="chat-input" placeholder="Tulis keluhan atau pertanyaan..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                <button type="submit" class="bg-brand-600 text-white p-3 rounded-xl hover:bg-brand-700 transition shadow-lg shadow-brand-500/20"><i class="ph-bold ph-paper-plane-right"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                    `;
+                    document.getElementById('content-area').innerHTML = html;
+                    
+                    // Scroll to bottom
+                    const area = document.getElementById('chat-messages');
+                    area.scrollTop = area.scrollHeight;
+                }
+            },
+
+            // --- 6. LOGIC CONTROLLERS ---
+            controllers: {
+                handleInputSubmit(e) {
+                    e.preventDefault();
+                    
+                    // Get values
+                    const date = document.getElementById('inp-date').value;
+                    const age = parseInt(document.getElementById('inp-age').value);
+                    const weight = parseFloat(document.getElementById('inp-weight').value);
+                    const height = parseFloat(document.getElementById('inp-height').value);
+                    const head = parseFloat(document.getElementById('inp-head').value);
+
+                    // Add to state
+                    App.state.addRecord({
+                        id: Date.now(),
+                        date, age, weight, height, head
+                    });
+
+                    // UI Feedback
+                    App.ui.modals.input.close();
+                    App.utils.showToast('Data berhasil disimpan!', 'success');
+                    
+                    // Refresh view based on current route
+                    const activeNav = document.querySelector('.nav-item.active');
+                    const currentRoute = activeNav ? activeNav.id.replace('nav-d-', '') : 'dashboard'; // Safer check
+
+                    if(currentRoute === 'dashboard' || currentRoute === 'growth') {
+                        App.router.go(currentRoute);
+                    }
+                },
+
+                toggleVaccine(id) {
+                    App.state.toggleVaccine(id);
+                    App.utils.showToast(App.state.vaccineStatus[id] ? 'Vaksin ditandai selesai' : 'Status vaksin dibatalkan', 'info');
+                    App.router.go('vaccine'); // Refresh
+                },
+
+                sendChat(e) {
+                    e.preventDefault();
+                    const input = document.getElementById('chat-input');
+                    const text = input.value.trim();
+                    if(!text) return;
+
+                    // User Message
+                    const time = new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                    App.state.addMessage({ sender: 'user', text, time });
+                    
+                    // Clear input & Refresh UI
+                    input.value = '';
+                    App.renderers.chat();
+
+                    // Simulated Bot Response
+                    setTimeout(() => {
+                        const responses = [
+                            "Baik Bu, saya mengerti. Apakah anak mengalami demam juga?",
+                            "Untuk usia 12 bulan, berat badan tersebut masih dalam batas toleransi, namun perlu dipantau makannya ya.",
+                            "Bisa dicoba resep Nugget Lele yang ada di menu Meal Planner kami untuk booster berat badan.",
+                            "Jika demam berlanjut lebih dari 2 hari, segera bawa ke Puskesmas terdekat ya Bu."
+                        ];
+                        const randomResp = responses[Math.floor(Math.random() * responses.length)];
+                        
+                        App.state.addMessage({ sender: 'bot', text: randomResp, time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) });
+                        
+                        // Play sound (optional) and refresh UIā
+                        if(document.getElementById('chat-messages')) App.renderers.chat();
+                        App.utils.showToast('Pesan baru dari Bidan', 'info');
+                    }, 1500);
+                }
+            },
+
+            // --- 7. INITIALIZATION ---
+            init() {
+                this.state.init();
+                this.router.go('dashboard');
+                console.log("StuntGuard Pro Initialized");
+            }
+        };
+
+        // Start App when DOM Ready
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+
+    </script>
+</body>
+</html>

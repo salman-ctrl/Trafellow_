@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nutrisi.AI - Asisten Gizi Medis</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/locale/id.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+                        success: { 500: '#10b981', 100: '#dcfce7', text: '#166534' },
+                        warning: { 500: '#f59e0b', 100: '#fef3c7', text: '#92400e' },
+                        danger: { 500: '#ef4444', 100: '#fee2e2', text: '#991b1b' },
+                        slate: { 850: '#1e293b' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'wave': 'wave 2.5s infinite linear',
+                        'scan': 'scan 2s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        wave: { '0%': { transform: 'translateX(0)' }, '100%': { transform: 'translateX(-50%)' } },
+                        scan: { '0%': { top: '0%' }, '50%': { top: '100%' }, '100%': { top: '0%' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { 
+            background-image: url('https://images.unsplash.com/photo-1490818387583-1baba5e638af?q=80&w=2000&auto=format&fit=crop');
+            background-size: cover; background-position: center; background-attachment: fixed;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.6); 
+            backdrop-filter: blur(4px); z-index: -1;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .modern-card { 
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.6); 
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+        }
+        .modern-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(59, 130, 246, 0.15); border-color: #bfdbfe; }
+        
+        .nav-item.active { background-color: #3b82f6; color: white; box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.4); }
+        .nav-item-mobile.active i { color: #3b82f6; transform: scale(1.1); transition: 0.3s; }
+        .nav-item-mobile.active span { color: #3b82f6; font-weight: 700; }
+
+        .human-container { 
+            position: relative; 
+            width: 100px; height: 220px; 
+            margin: 0 auto; 
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.05));
+        }
+        .human-mask { 
+            width: 100%; height: 100%; 
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 64' preserveAspectRatio='xMidYMid meet'%3E%3Cpath d='M12 2C14.2091 2 16 3.79086 16 6C16 8.20914 14.2091 10 12 10C9.79086 10 8 8.20914 8 6C8 3.79086 9.79086 2 12 2ZM16 12H8C6.34315 12 5 13.3431 5 15V32C5 32.5523 5.44772 33 6 33H8V60C8 61.1046 8.89543 62 10 62H11C12.1046 62 13 61.1046 13 60V40H11V60H10V33H14V60H13V40H11V31H13V60C13 61.1046 13.8954 62 15 62H16C17.1046 62 18 61.1046 18 60V33H20V15C20 13.3431 18.6569 12 16 12Z' fill='black'/%3E%3Cpath d='M12 2C14.5 2 16.5 4 16.5 6.5C16.5 9 14.5 11 12 11C9.5 11 7.5 9 7.5 6.5C7.5 4 9.5 2 12 2ZM18 13H6C4.3 13 3 14.3 3 16V28C3 28.6 3.4 29 4 29H6V58C6 60.2 7.8 62 10 62H14C16.2 62 18 60.2 18 58V29H20C20.6 29 21 28.6 21 28V16C21 14.3 19.7 13 18 13Z' fill='black'/%3E%3C/svg%3E");
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 64' preserveAspectRatio='xMidYMid meet'%3E%3Cpath d='M12 2C14.2091 2 16 3.79086 16 6C16 8.20914 14.2091 10 12 10C9.79086 10 8 8.20914 8 6C8 3.79086 9.79086 2 12 2ZM16 12H8C6.34315 12 5 13.3431 5 15V32C5 32.5523 5.44772 33 6 33H8V60C8 61.1046 8.89543 62 10 62H11C12.1046 62 13 61.1046 13 60V40H11V60H10V33H14V60H13V40H11V31H13V60C13 61.1046 13.8954 62 15 62H16C17.1046 62 18 61.1046 18 60V33H20V15C20 13.3431 18.6569 12 16 12Z' fill='black'/%3E%3Cpath d='M12 2C14.5 2 16.5 4 16.5 6.5C16.5 9 14.5 11 12 11C9.5 11 7.5 9 7.5 6.5C7.5 4 9.5 2 12 2ZM18 13H6C4.3 13 3 14.3 3 16V28C3 28.6 3.4 29 4 29H6V58C6 60.2 7.8 62 10 62H14C16.2 62 18 60.2 18 58V29H20C20.6 29 21 28.6 21 28V16C21 14.3 19.7 13 18 13Z' fill='black'/%3E%3C/svg%3E");
+            mask-size: contain; -webkit-mask-size: contain;
+            mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+            mask-position: center bottom; -webkit-mask-position: center bottom;
+            background: rgba(226, 232, 240, 0.5); 
+            position: relative;
+        }
+
+        .liquid-fill {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; 
+            background-color: #ef4444;
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.8s ease;
+            z-index: 1;
+        }
+        
+        .liquid-wave {
+            position: absolute; top: -10px; left: 0; width: 200%; height: 20px;
+            background: inherit; opacity: 0.7; border-radius: 40%;
+            animation: wave 2s infinite linear;
+            transform-origin: 50% 50%;
+        }
+
+        .scan-line { position: absolute; width: 100%; height: 4px; background: #3b82f6; box-shadow: 0 0 20px #3b82f6; top: 0; animation: scan 2s linear infinite; z-index: 20; }
+        
+        #video-container video { transform: scaleX(-1); object-fit: cover; }
+
+        .medical-warning {
+            border: 1px solid #fee2e2;
+            background-color: #fef2f2;
+            animation: pulse-fast 2s infinite;
+        }
+
+        aside { background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.5) !important; }
+        header { background: rgba(255, 255, 255, 0.65) !important; backdrop-filter: blur(12px); }
+        .nav-item:hover { background-color: rgba(255,255,255,0.6) !important; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
+    
+    <div class="bg-overlay"></div>
+
+    <aside class="w-64 border-r border-slate-200 hidden md:flex flex-col z-50">
+        <div class="h-24 flex items-center px-8 border-b border-slate-100/50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
+                    <i class="ph-bold ph-heartbeat text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl text-slate-800 tracking-tight">Nutrisi<span class="text-primary-500">.AI</span></h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Medical Grade</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2 py-6 overflow-y-auto">
+            <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Utama</p>
+            <button onclick="App.router.go('home')" id="desk-nav-home" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all group active"><i class="ph-duotone ph-squares-four text-xl"></i> Dashboard</button>
+            <button onclick="App.router.go('journal')" id="desk-nav-journal" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 rounded-xl text-sm font-medium transition-all group"><i class="ph-duotone ph-notebook text-xl"></i> Jurnal Gizi</button>
+            
+            <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Fitur Cerdas</p>
+            <button onclick="App.router.go('camera')" id="desk-nav-camera" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 rounded-xl text-sm font-medium transition-all group"><i class="ph-duotone ph-scan text-xl"></i> Scan Makanan</button>
+            <button onclick="App.router.go('chat')" id="desk-nav-chat" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 rounded-xl text-sm font-medium transition-all group"><i class="ph-duotone ph-chat-centered-text text-xl"></i> Konsultasi AI</button>
+
+            <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Akun</p>
+            <button onclick="App.router.go('profile')" id="desk-nav-profile" class="nav-item w-full flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 rounded-xl text-sm font-medium transition-all group"><i class="ph-duotone ph-user-gear text-xl"></i> Profil Saya</button>
+        </nav>
+
+        <div class="p-6 border-t border-slate-100/50">
+            <div class="bg-white/50 p-4 rounded-2xl flex items-center gap-3 border border-white/60 cursor-pointer hover:bg-white/80 transition backdrop-blur-sm" onclick="App.router.go('profile')">
+                <div class="w-10 h-10 rounded-full bg-white border-2 border-primary-200 flex items-center justify-center font-bold text-primary-600 shadow-sm" id="sidebar-avatar">SP</div>
+                <div class="overflow-hidden">
+                    <p class="text-sm font-bold text-slate-800 truncate" id="sidebar-name">User</p>
+                    <p class="text-[10px] font-bold text-primary-600 truncate">Status: Sehat</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden">
+        <header id="app-header" class="h-20 flex justify-between items-center px-6 md:px-10 z-40 sticky top-0 border-b border-slate-100/50">
+            <div>
+                <h2 class="text-xl font-extrabold text-slate-800 tracking-tight" id="header-title">Dashboard</h2>
+                <p class="text-xs text-slate-500 font-medium hidden md:block mt-1" id="current-date">Memuat tanggal...</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-2 bg-white/70 px-3 py-1.5 rounded-full border border-white shadow-sm backdrop-blur-sm">
+                    <span class="w-2 h-2 rounded-full bg-success-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-slate-600">Sinkronisasi AKG: Aktif</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="main-content" class="flex-1 overflow-y-auto hide-scrollbar p-4 md:p-8 pb-28 md:pb-8 relative z-10 scroll-smooth">
+        </div>
+
+        <nav class="md:hidden bg-white/90 backdrop-blur-md fixed bottom-0 left-0 w-full border-t border-slate-200 px-6 py-3 flex justify-between items-end pb-6 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+            <button onclick="App.router.go('home')" id="mob-nav-home" class="nav-item-mobile flex flex-col items-center gap-1 text-primary-500 transition active"><i class="ph-fill ph-squares-four text-2xl"></i><span class="text-[10px]">Home</span></button>
+            <button onclick="App.router.go('journal')" id="mob-nav-journal" class="nav-item-mobile flex flex-col items-center gap-1 text-slate-400 transition"><i class="ph-fill ph-notebook text-2xl"></i><span class="text-[10px]">Jurnal</span></button>
+            <button onclick="App.router.go('camera')" class="w-16 h-16 bg-primary-500 rounded-full shadow-lg shadow-primary-500/40 border-4 border-white flex items-center justify-center text-white text-3xl -mt-8 hover:scale-105 active:scale-95 transition transform"><i class="ph-bold ph-scan"></i></button>
+            <button onclick="App.router.go('chat')" id="mob-nav-chat" class="nav-item-mobile flex flex-col items-center gap-1 text-slate-400 transition"><i class="ph-fill ph-chat-centered-text text-2xl"></i><span class="text-[10px]">Chat</span></button>
+            <button onclick="App.router.go('profile')" id="mob-nav-profile" class="nav-item-mobile flex flex-col items-center gap-1 text-slate-400 transition"><i class="ph-fill ph-user text-2xl"></i><span class="text-[10px]">Profil</span></button>
+        </nav>
+    </main>
+
+    <div id="loading-overlay" class="fixed inset-0 z-[100] bg-white/80 hidden flex-col items-center justify-center backdrop-blur-md">
+        <div class="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-600 font-bold animate-pulse" id="loading-text">Memproses...</p>
+    </div>
+
+    <script>
+        dayjs.locale('id');
+
+        const Storage = {
+            KEY: 'nutrisi_ai_data_v2', 
+            DEFAULT: {
+                user: { 
+                    name: "User", gender: "female", dob: "1998-05-15", height: 160, weight: 55, activity: 1.375,
+                    conditions: [] 
+                },
+                today: {
+                    date: dayjs().format('YYYY-MM-DD'),
+                    water: 0, consumed: 0, 
+                    protein: 0, carbs: 0, fat: 0,
+                    sugar: 0, salt: 0, fiber: 0, 
+                    meals: []
+                },
+                chatHistory: []
+            },
+            get() {
+                const data = localStorage.getItem(this.KEY);
+                if (!data) return this.DEFAULT;
+                let parsed = JSON.parse(data);
+                
+                const today = dayjs().format('YYYY-MM-DD');
+                if (parsed.today.date !== today) {
+                    parsed.today = { ...this.DEFAULT.today, date: today }; 
+                    this.save(parsed);
+                }
+                if(parsed.today.sugar === undefined) {
+                    parsed.today.sugar = 0; parsed.today.salt = 0; parsed.today.fiber = 0;
+                }
+                if(parsed.user.conditions === undefined) {
+                    parsed.user.conditions = [];
+                }
+                return parsed;
+            },
+            save(data) {
+                localStorage.setItem(this.KEY, JSON.stringify(data));
+                App.state = data;
+            },
+            reset() {
+                localStorage.removeItem(this.KEY);
+                location.reload();
+            }
+        };
+
+        const MockAI = {
+            foods: [
+                { name: "Gado-gado Komplit", cal: 320, p: 18, c: 30, f: 15, s: 8, na: 400, fib: 8, grade: "A" },
+                { name: "Es Teh Manis", cal: 120, p: 0, c: 30, f: 0, s: 28, na: 10, fib: 0, grade: "D" }, // Tinggi Gula
+                { name: "Ayam Geprek Sambal", cal: 550, p: 30, c: 15, f: 35, s: 1, na: 850, fib: 1, grade: "C" },
+                { name: "Bubur Ayam Jakarta", cal: 300, p: 15, c: 40, f: 8, s: 1, na: 550, fib: 1, grade: "B" },
+                { name: "Rendang Sapi (1 ptg)", cal: 250, p: 22, c: 5, f: 18, s: 1, na: 450, fib: 0, grade: "B-" }
+            ],
+            chatResponses: {
+                'diabetes': "Penderita diabetes harus membatasi asupan gula harian di bawah 25g. Hindari makanan dengan indeks glikemik tinggi seperti nasi putih panas dan minuman manis.",
+                'hipertensi': "Untuk hipertensi, batasi natrium (garam) di bawah 1500mg per hari. Hindari makanan kemasan, mie instan, dan penyedap rasa berlebih.",
+                'kolesterol': "Kurangi lemak jenuh dari gorengan dan daging merah. Tingkatkan asupan serat larut dari oat dan buah-buahan untuk mengikat kolesterol.",
+                'default': "Keseimbangan nutrisi adalah kunci. Pastikan asupan makro (protein, karbo, lemak) dan mikro (vitamin, mineral) terpenuhi sesuai kondisi tubuh Anda."
+            },
+            analyzeImage() {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const randomFood = this.foods[Math.floor(Math.random() * this.foods.length)];
+                        const variance = () => Math.floor(Math.random() * 5); 
+                        resolve({
+                            ...randomFood,
+                            cal: randomFood.cal + variance(),
+                            s: randomFood.s, na: randomFood.na, fib: randomFood.fib
+                        });
+                    }, 2000); 
+                });
+            },
+            replyChat(msg) {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const lower = msg.toLowerCase();
+                        let reply = this.chatResponses['default'];
+                        for (const key in this.chatResponses) {
+                            if (lower.includes(key)) reply = this.chatResponses[key];
+                        }
+                        resolve(reply);
+                    }, 800);
+                });
+            }
+        };
+
+        const App = {
+            state: Storage.get(),
+            stream: null,
+            chartInstance: null,
+
+            helpers: {
+                calculateAge(dob) { 
+                    if(!dob) return 0;
+                    return dayjs().diff(dayjs(dob), 'year'); 
+                },
+                calculateNeeds() {
+                    const u = App.state.user;
+                    const age = this.calculateAge(u.dob);
+                    let bmr = (10 * u.weight) + (6.25 * u.height) - (5 * age);
+                    bmr += u.gender === 'male' ? 5 : -161;
+                    const tdee = Math.round(bmr * u.activity);
+                    return { 
+                        age, bmr, tdee, 
+                        protein: Math.round((tdee * 0.15) / 4), 
+                        fat: Math.round((tdee * 0.25) / 9), 
+                        carbs: Math.round((tdee * 0.60) / 4),
+                        sugar: 30, 
+                        salt: 2000, 
+                        fiber: 30 
+                    };
+                },
+                getWaterVisuals(count) {
+                    let pct = Math.min((count / 8) * 100, 100);
+                    let color = '#ef4444'; 
+                    if(count >= 3) color = '#f59e0b'; 
+                    if(count >= 5) color = '#60a5fa'; 
+                    if(count >= 8) color = '#3b82f6';
+                    return { pct, color };
+                },
+                checkHealthRisks(food) {
+                    const risks = [];
+                    const conditions = App.state.user.conditions || [];
+                    
+                    if (conditions.includes('Diabetes') && food.s > 20) {
+                        risks.push({ type: 'Gula Tinggi', msg: 'Berbahaya untuk Diabetes!', nutrient: 'Gula', val: food.s + 'g' });
+                    }
+                    if (conditions.includes('Hipertensi') && food.na > 600) {
+                        risks.push({ type: 'Garam Tinggi', msg: 'Pemicu Hipertensi!', nutrient: 'Natrium', val: food.na + 'mg' });
+                    }
+                    if (conditions.includes('Kolesterol') && food.f > 20) {
+                        risks.push({ type: 'Lemak Tinggi', msg: 'Risiko Kolesterol!', nutrient: 'Lemak', val: food.f + 'g' });
+                    }
+                    return risks;
+                },
+                initCharts() {
+                    const canvas = document.getElementById('nutritionChart');
+                    if(!canvas) return;
+                    
+                    const needs = this.calculateNeeds();
+                    const data = App.state.today;
+                    
+                    if(App.chartInstance) {
+                        App.chartInstance.destroy();
+                        App.chartInstance = null;
+                    }
+
+                    Chart.register(window['chartjs-plugin-annotation']);
+                    App.chartInstance = new Chart(canvas.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Pro', 'Karbo', 'Lemak', 'Gula', 'Serat'],
+                            datasets: [{ 
+                                label: '% Terpenuhi', 
+                                data: [
+                                    (data.protein/needs.protein)*100, 
+                                    (data.carbs/needs.carbs)*100, 
+                                    (data.fat/needs.fat)*100,
+                                    (data.sugar/needs.sugar)*100,
+                                    (data.fiber/needs.fiber)*100
+                                ], 
+                                backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981'], 
+                                borderRadius: 6 
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: {
+                                annotation: { annotations: { line1: { type: 'line', yMin: 100, yMax: 100, borderColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderDash: [5,5], label: { content: 'Batas Harian', display: true } } } }
+                            },
+                            scales: { y: { beginAtZero: true, max: 150, grid: { display: false } }, x: { grid: { display: false } } }
+                        }
+                    });
+                }
+            },
+
+            logic: {
+                updateWater(amount) {
+                    App.state.today.water += amount;
+                    if (App.state.today.water < 0) App.state.today.water = 0;
+                    Storage.save(App.state);
+                    
+                    const fill = document.getElementById('water-fill-anim');
+                    const text = document.getElementById('water-count-text');
+                    const sub = document.getElementById('water-sub-text');
+                    
+                    if(fill && text) {
+                        const visuals = App.helpers.getWaterVisuals(App.state.today.water);
+                        fill.style.height = visuals.pct + '%';
+                        fill.style.backgroundColor = visuals.color;
+                        text.innerText = App.state.today.water;
+                        if(sub) sub.innerText = `${App.state.today.water}/8 Gelas`;
+                    } else {
+                        App.router.go('home');
+                    }
+                },
+                updateProfile(key, value) {
+                    if(key === 'conditions') {
+                        const current = App.state.user.conditions || [];
+                        if(current.includes(value)) App.state.user.conditions = current.filter(c => c !== value);
+                        else App.state.user.conditions.push(value);
+                    } else {
+                        App.state.user[key] = value;
+                    }
+                    Storage.save(App.state);
+                    
+                    if(key !== 'conditions') {
+                        if(key === 'name') document.getElementById('sidebar-name').innerText = value;
+                        App.router.go('profile');
+                    }
+                },
+                saveMeal(mealData) {
+                    const proceedSave = () => {
+                        App.state.today.consumed += mealData.cal;
+                        App.state.today.protein += mealData.p;
+                        App.state.today.carbs += mealData.c;
+                        App.state.today.fat += mealData.f;
+                        App.state.today.sugar += (mealData.s || 0);
+                        App.state.today.salt += (mealData.na || 0);
+                        App.state.today.fiber += (mealData.fib || 0);
+
+                        App.state.today.meals.unshift({ 
+                            name: mealData.name,
+                            items: `Gula: ${mealData.s}g, Na: ${mealData.na}mg`,
+                            cal: mealData.cal,
+                            grade: mealData.grade,
+                            time: dayjs().format('HH:mm')
+                        });
+                        Storage.save(App.state);
+                        App.router.go('home');
+                        Swal.fire({ icon: 'success', title: 'Tercatat', text: 'Data gizi berhasil ditambahkan.', timer: 1500, showConfirmButton: false });
+                    };
+
+                    // Cek Risiko Dulu
+                    const risks = App.helpers.checkHealthRisks(mealData);
+                    if (risks.length > 0) {
+                        const riskText = risks.map(r => `• ${r.msg} (${r.nutrient}: ${r.val})`).join('\n');
+                        Swal.fire({
+                            title: 'PERINGATAN MEDIS!',
+                            html: `<div class="text-left text-sm text-slate-600">Makanan ini berisiko bagi kondisi Anda:<br><br><span class="text-red-600 font-bold">${riskText.replace(/\n/g, '<br>')}</span><br><br>Tetap simpan ke jurnal?</div>`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#ef4444',
+                            cancelButtonColor: '#94a3b8',
+                            confirmButtonText: 'Ya, Saya Mengerti',
+                            cancelButtonText: 'Batalkan'
+                        }).then((result) => {
+                            if (result.isConfirmed) proceedSave();
+                        });
+                    } else {
+                        proceedSave();
+                    }
+                },
+                async sendChat(msg) {
+                    if(!msg.trim()) return;
+                    const box = document.getElementById('chat-box');
+                    App.state.chatHistory.push({ role: 'user', text: msg });
+                    box.innerHTML += `<div class="flex justify-end animate-fade-in mb-4"><div class="bg-primary-600 text-white p-3 rounded-2xl rounded-tr-none text-sm max-w-[80%] shadow-md">${msg}</div></div>`;
+                    box.scrollTop = box.scrollHeight;
+                    
+                    const reply = await MockAI.replyChat(msg);
+                    App.state.chatHistory.push({ role: 'ai', text: reply });
+                    Storage.save(App.state); 
+                    
+                    box.innerHTML += `<div class="flex items-start gap-3 animate-fade-in mb-4"><div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 flex-none"><i class="ph-bold ph-robot"></i></div><div class="bg-slate-100 p-3 rounded-2xl rounded-tl-none text-sm text-slate-700 max-w-[80%] border border-slate-200">${reply}</div></div>`;
+                    box.scrollTop = box.scrollHeight;
+                }
+            },
+
+            camera: {
+                async start() {
+                    const video = document.getElementById('camera-video');
+                    if (!video) return;
+                    try {
+                        App.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                        video.srcObject = App.stream;
+                    } catch (err) {
+                        console.error("Camera Error:", err);
+                        Swal.fire("Error", "Gagal mengakses kamera.", "error");
+                    }
+                },
+                stop() {
+                    if (App.stream) {
+                        App.stream.getTracks().forEach(track => track.stop());
+                        App.stream = null;
+                    }
+                },
+                capture() {
+                    const overlay = document.getElementById('loading-overlay');
+                    const text = document.getElementById('loading-text');
+                    overlay.classList.remove('hidden'); overlay.classList.add('flex');
+                    text.innerText = "Analisis Nutrisi Medis...";
+                    this.stop();
+                    MockAI.analyzeImage().then(data => {
+                        overlay.classList.add('hidden'); overlay.classList.remove('flex');
+                        document.getElementById('main-content').innerHTML = App.views.result(data);
+                        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                    });
+                },
+                handleUpload(input) {
+                    if (input.files && input.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) { 
+                            const preview = document.getElementById('static-preview');
+                            const video = document.getElementById('camera-video');
+                            if(video) video.classList.add('hidden');
+                            if(preview) { preview.src = e.target.result; preview.classList.remove('hidden'); }
+                        }
+                        reader.readAsDataURL(input.files[0]);
+                    }
+                }
+            },
+
+            views: {
+                waterWidget() {
+                    const count = App.state.today.water;
+                    const visuals = App.helpers.getWaterVisuals(count);
+                    return `
+                    <div id="water-widget-container" class="modern-card p-6 flex flex-col items-center justify-between bg-white relative overflow-hidden h-full">
+                        <div class="w-full flex justify-between items-center mb-4 z-10">
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="ph-fill ph-drop text-primary-500"></i> Hidrasi</h3>
+                            <span id="water-sub-text" class="text-xs font-bold text-slate-400">${count}/8 Gelas</span>
+                        </div>
+                        <div class="flex-1 w-full flex items-center justify-center relative z-0 my-2">
+                            <div class="human-container">
+                                <div class="human-mask">
+                                    <div id="water-fill-anim" class="liquid-fill" style="height: ${visuals.pct}%; background-color: ${visuals.color};">
+                                        <div class="liquid-wave"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="z-10 w-full">
+                            <div class="flex justify-between items-center bg-white/50 backdrop-blur-sm p-2 rounded-xl border border-white">
+                                <button onclick="App.logic.updateWater(-1)" class="w-10 h-10 rounded-lg bg-white shadow hover:bg-slate-100 text-slate-500 transition"><i class="ph-bold ph-minus"></i></button>
+                                <span id="water-count-text" class="font-bold text-2xl text-slate-800">${count}</span>
+                                <button onclick="App.logic.updateWater(1)" class="w-10 h-10 rounded-lg bg-primary-500 shadow text-white hover:scale-105 transition"><i class="ph-bold ph-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>`;
+                },
+
+                home() {
+                    const needs = App.helpers.calculateNeeds();
+                    const percent = Math.min((App.state.today.consumed / needs.tdee) * 100, 100);
+                    const rem = Math.max(0, needs.tdee - App.state.today.consumed);
+                    const data = App.state.today;
+
+                    return `
+                    <div class="space-y-6 pb-24 md:pb-0 animate-fade-in">
+                        <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-2">
+                            <div>
+                                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Halo, ${App.state.user.name} 👋</h2>
+                                <p class="text-slate-500 text-sm">Hari ini: ${dayjs().format('dddd, D MMMM YYYY')}</p>
+                            </div>
+                            <!-- Age Badge -->
+                            <div class="px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl text-xs font-bold text-slate-500 border border-white">
+                                Usia Metabolisme: <span class="text-primary-600 text-sm">${needs.age} Tahun</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- MAIN STATS -->
+                            <div class="lg:col-span-2 modern-card p-8 bg-white relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 -mr-16 -mt-16 group-hover:opacity-70 transition"></div>
+                                <div class="relative z-10">
+                                    <div class="flex items-center justify-between mb-8">
+                                        <div>
+                                            <div class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2">Total Asupan</div>
+                                            <div class="flex items-baseline gap-2">
+                                                <span class="text-4xl font-extrabold text-slate-800 tracking-tight">${data.consumed}</span>
+                                                <span class="text-lg text-slate-400 font-bold">/ ${needs.tdee} kcal</span>
+                                            </div>
+                                        </div>
+                                        <div class="relative w-24 h-24">
+                                            <svg class="w-full h-full transform -rotate-90">
+                                                <circle cx="48" cy="48" r="40" stroke="#f1f5f9" stroke-width="8" fill="none" />
+                                                <circle cx="48" cy="48" r="40" stroke="#3b82f6" stroke-width="8" fill="none" stroke-dasharray="251" stroke-dashoffset="${251 - (251 * percent / 100)}" stroke-linecap="round" />
+                                            </svg>
+                                            <div class="absolute inset-0 flex items-center justify-center font-bold text-slate-800">${Math.round(percent)}%</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- IMPROVED MEDICAL GRADE GRID -->
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <!-- Macros -->
+                                        <div class="bg-slate-50/50 backdrop-blur-sm p-3 rounded-2xl border border-white">
+                                            <p class="text-[10px] text-slate-400 font-bold uppercase">Protein</p>
+                                            <p class="text-lg font-bold text-primary-600">${data.protein}g</p>
+                                            <div class="w-full bg-slate-200 h-1 mt-2 rounded-full"><div class="bg-primary-500 h-full" style="width: ${(data.protein/needs.protein)*100}%"></div></div>
+                                        </div>
+                                        <div class="bg-slate-50/50 backdrop-blur-sm p-3 rounded-2xl border border-white">
+                                            <p class="text-[10px] text-slate-400 font-bold uppercase">Carbs</p>
+                                            <p class="text-lg font-bold text-warning-500">${data.carbs}g</p>
+                                            <div class="w-full bg-slate-200 h-1 mt-2 rounded-full"><div class="bg-warning-500 h-full" style="width: ${(data.carbs/needs.carbs)*100}%"></div></div>
+                                        </div>
+                                        <div class="bg-slate-50/50 backdrop-blur-sm p-3 rounded-2xl border border-white">
+                                            <p class="text-[10px] text-slate-400 font-bold uppercase">Fat</p>
+                                            <p class="text-lg font-bold text-danger-500">${data.fat}g</p>
+                                            <div class="w-full bg-slate-200 h-1 mt-2 rounded-full"><div class="bg-danger-500 h-full" style="width: ${(data.fat/needs.fat)*100}%"></div></div>
+                                        </div>
+                                        <!-- Micros (NEW) -->
+                                        <div class="bg-purple-50/50 backdrop-blur-sm p-3 rounded-2xl border border-purple-100">
+                                            <p class="text-[10px] text-purple-400 font-bold uppercase">Gula</p>
+                                            <p class="text-lg font-bold text-purple-600">${data.sugar}g</p>
+                                            <div class="text-[10px] text-purple-400">Max ${needs.sugar}g</div>
+                                        </div>
+                                        <div class="bg-orange-50/50 backdrop-blur-sm p-3 rounded-2xl border border-orange-100">
+                                            <p class="text-[10px] text-orange-400 font-bold uppercase">Garam (Na)</p>
+                                            <p class="text-lg font-bold text-orange-600">${data.salt}mg</p>
+                                            <div class="text-[10px] text-orange-400">Max ${needs.salt}mg</div>
+                                        </div>
+                                        <div class="bg-emerald-50/50 backdrop-blur-sm p-3 rounded-2xl border border-emerald-100">
+                                            <p class="text-[10px] text-emerald-400 font-bold uppercase">Serat</p>
+                                            <p class="text-lg font-bold text-emerald-600">${data.fiber}g</p>
+                                            <div class="text-[10px] text-emerald-400">Target ${needs.fiber}g</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ${this.waterWidget()}
+                        </div>
+
+                        <!-- TIMELINE -->
+                        <div class="modern-card p-6 md:p-8">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-lg text-slate-800">Log Makanan & Risiko</h3>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div onclick="App.router.go('camera')" class="flex items-center justify-center gap-2 p-4 bg-slate-50/50 border border-dashed border-slate-300 rounded-2xl text-slate-400 hover:bg-slate-100/50 hover:border-slate-400 hover:text-slate-600 transition cursor-pointer min-h-[80px]">
+                                    <i class="ph-bold ph-plus-circle text-xl"></i>
+                                    <span class="text-sm font-bold">Tambah Makan</span>
+                                </div>
+                                ${App.state.today.meals.length === 0 ? '<p class="text-sm text-slate-400 italic p-4">Belum ada makanan tercatat.</p>' : ''}
+                                ${App.state.today.meals.map(m => `
+                                <div class="flex items-center gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-white hover:border-primary-200 hover:shadow-md transition">
+                                    <div class="w-12 h-12 rounded-xl ${m.grade.includes('A') ? 'bg-green-100 text-green-600' : (m.grade.includes('B') ? 'bg-blue-100 text-blue-600' : (m.grade.includes('C') ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'))} flex items-center justify-center text-xl font-bold flex-none">${m.grade}</div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-bold text-slate-700 text-sm truncate">${m.name}</h4>
+                                        <p class="text-xs text-slate-500 truncate">${m.cal} kcal • ${m.items}</p>
+                                    </div>
+                                </div>`).join('')}
+                            </div>
+                        </div>
+                    </div>`;
+                },
+
+                journal() {
+                    const needs = App.helpers.calculateNeeds();
+                    const getStatus = (val, target, isLimit) => {
+                        const pct = (val/target)*100;
+                        if(isLimit) { // For Sugar/Salt (Less is better)
+                            if(pct > 100) return {label: 'Bahaya', class: 'bg-red-50 text-red-500'};
+                            if(pct > 80) return {label: 'Waspada', class: 'bg-yellow-50 text-yellow-600'};
+                            return {label: 'Aman', class: 'bg-green-50 text-green-600'};
+                        }
+                        // For Protein/Fiber (Target is better)
+                        if(pct < 50) return {label: 'Kurang', class: 'bg-red-50 text-red-500'};
+                        if(pct < 80) return {label: 'Cukup', class: 'bg-yellow-50 text-yellow-600'};
+                        return {label: 'Optimal', class: 'bg-green-50 text-green-600'};
+                    };
+                    const data = App.state.today;
+
+                    return `
+                    <div class="space-y-6 pb-24 md:pb-0 animate-fade-in">
+                        <div class="modern-card p-8 bg-white min-h-[400px]">
+                            <div class="flex justify-between items-start mb-6">
+                                <div><h3 class="font-bold text-lg text-slate-800">Analisis Nutrisi Harian</h3><p class="text-xs text-slate-500">Laporan Gizi Lengkap</p></div>
+                            </div>
+                            <!-- Canvas Container with relative sizing for Chart.js -->
+                            <div class="h-80 w-full relative flex items-center justify-center"><canvas id="nutritionChart"></canvas></div>
+                        </div>
+
+                        <div class="modern-card overflow-hidden bg-white mt-8">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left min-w-[500px]">
+                                    <thead class="bg-slate-50/50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="px-6 py-4 text-sm font-bold text-slate-500">Komponen</th>
+                                            <th class="px-6 py-4 text-sm font-bold text-slate-500">Asupan</th>
+                                            <th class="px-6 py-4 text-sm font-bold text-slate-500">Target/Batas</th>
+                                            <th class="px-6 py-4 text-sm font-bold text-slate-500 text-right">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50 bg-white/60">
+                                        ${[
+                                            {n:'Protein', v:data.protein, t:needs.protein, l:false},
+                                            {n:'Karbohidrat', v:data.carbs, t:needs.carbs, l:false},
+                                            {n:'Lemak', v:data.fat, t:needs.fat, l:false},
+                                            {n:'Gula (Gula Tambahan)', v:data.sugar, t:needs.sugar, l:true},
+                                            {n:'Natrium (Garam)', v:data.salt, t:needs.salt, l:true},
+                                            {n:'Serat Pangan', v:data.fiber, t:needs.fiber, l:false},
+                                        ].map(x => {
+                                            const st = getStatus(x.v, x.t, x.l);
+                                            return `
+                                            <tr class="hover:bg-slate-50/80 transition">
+                                                <td class="px-6 py-4 font-bold text-slate-800">${x.n}</td>
+                                                <td class="px-6 py-4 text-slate-600 text-sm font-medium">${x.v}${x.n.includes('Natrium')?'mg':'g'}</td>
+                                                <td class="px-6 py-4 text-slate-400 text-sm">${x.t}${x.n.includes('Natrium')?'mg':'g'}</td>
+                                                <td class="px-6 py-4 text-right"><span class="${st.class} px-3 py-1 rounded-full text-[10px] font-bold uppercase">${st.label}</span></td>
+                                            </tr>`;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>`;
+                },
+
+                camera() {
+                    return `
+                    <div class="h-full flex items-center justify-center bg-black/95 backdrop-blur-xl relative animate-fade-in p-4">
+                        <div class="w-full max-w-4xl h-full md:h-[90vh] bg-slate-900 md:rounded-3xl relative overflow-hidden flex flex-col shadow-2xl border border-slate-800">
+                            <!-- Viewfinder -->
+                            <div class="flex-1 bg-slate-800 relative group flex items-center justify-center overflow-hidden" id="video-container">
+                                <video id="camera-video" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+                                <img id="static-preview" class="absolute inset-0 w-full h-full object-cover hidden">
+                                
+                                <div class="absolute inset-0 bg-black/10"></div>
+                                <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative z-10">
+                                    <div class="scan-line"></div>
+                                </div>
+                                <div class="absolute top-8 left-0 w-full text-center z-10">
+                                    <span class="bg-black/60 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase backdrop-blur border border-white/10 flex items-center justify-center gap-2 w-fit mx-auto">
+                                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Medical Scan
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Controls -->
+                            <div class="h-64 bg-white p-8 flex flex-col justify-center items-center z-20 rounded-t-3xl -mt-6">
+                                <h3 class="font-bold text-xl text-slate-800 mb-2">Scan Makanan</h3>
+                                <p class="text-xs text-slate-400 mb-8 text-center">Deteksi Gula, Garam, dan Lemak Otomatis</p>
+                                <div class="flex gap-8 items-center">
+                                    <label class="p-4 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition cursor-pointer">
+                                        <i class="ph-bold ph-image text-xl"></i>
+                                        <input type="file" accept="image/*" class="hidden" onchange="App.camera.handleUpload(this)">
+                                    </label>
+                                    <button onclick="App.camera.capture()" class="w-20 h-20 rounded-full bg-primary-600 text-white shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition border-4 border-primary-100 ring-4 ring-primary-50">
+                                        <div class="w-16 h-16 rounded-full border-2 border-white"></div>
+                                    </button>
+                                </div>
+                                <button onclick="App.router.go('home')" class="mt-8 text-xs font-bold text-slate-400 hover:text-slate-800 uppercase">Batal</button>
+                            </div>
+                        </div>
+                    </div>`;
+                },
+
+                result(data) {
+                    const risks = App.helpers.checkHealthRisks(data);
+                    const riskHtml = risks.length > 0 
+                        ? `<div class="mb-4 medical-warning p-4 rounded-xl">
+                             <div class="flex items-center gap-2 mb-2 text-red-600 font-bold uppercase text-xs"><i class="ph-bold ph-warning"></i> Peringatan Kesehatan</div>
+                             ${risks.map(r => `<p class="text-sm text-red-800 font-bold mb-1">• ${r.msg} (${r.val})</p>`).join('')}
+                           </div>` 
+                        : '';
+
+                    return `
+                    <div class="max-w-md mx-auto p-4 animate-fade-in pb-24 md:pb-0 h-full flex items-center">
+                        <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl overflow-hidden border border-white w-full max-h-[90vh] overflow-y-auto">
+                            <div class="h-48 bg-slate-200 relative">
+                                <img src="https://source.unsplash.com/800x600/?${data.name.replace(' ','')}" onerror="this.src='https://via.placeholder.com/800x600?text=Food'" class="w-full h-full object-cover">
+                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent p-6">
+                                    <h2 class="text-2xl font-bold text-white mb-1">${data.name}</h2>
+                                    <p class="text-sm text-white/80 font-medium">Akurasi AI Medis 94%</p>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                ${riskHtml}
+                                
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="text-4xl font-extrabold text-slate-800">${data.cal}<span class="text-sm font-bold text-slate-400 ml-1">kcal</span></div>
+                                    <div class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-bold border border-green-200">Grade ${data.grade}</div>
+                                </div>
+                                
+                                <div class="grid grid-cols-3 gap-2 mb-6">
+                                    <div class="bg-slate-50/50 p-2 rounded-xl text-center border border-slate-200"><p class="text-[10px] font-bold text-slate-400 uppercase">Gula</p><p class="font-bold text-purple-600 text-sm">${data.s}g</p></div>
+                                    <div class="bg-slate-50/50 p-2 rounded-xl text-center border border-slate-200"><p class="text-[10px] font-bold text-slate-400 uppercase">Garam</p><p class="font-bold text-orange-600 text-sm">${data.na}mg</p></div>
+                                    <div class="bg-slate-50/50 p-2 rounded-xl text-center border border-slate-200"><p class="text-[10px] font-bold text-slate-400 uppercase">Lemak</p><p class="font-bold text-red-600 text-sm">${data.f}g</p></div>
+                                </div>
+                                
+                                <button onclick='App.logic.saveMeal(${JSON.stringify(data)})' class="w-full py-4 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-500/25 flex items-center justify-center gap-2">
+                                    <i class="ph-bold ph-check-circle text-xl"></i> Simpan ke Jurnal
+                                </button>
+                                <button onclick="App.router.go('camera')" class="w-full mt-3 py-3 text-slate-400 text-sm font-bold hover:text-slate-600">Scan Ulang</button>
+                            </div>
+                        </div>
+                    </div>`;
+                },
+
+                chat() {
+                    return `
+                    <div class="h-[calc(100vh-140px)] flex flex-col max-w-4xl mx-auto overflow-hidden bg-white/70 backdrop-blur-md md:rounded-2xl md:border md:border-white md:my-4 shadow-xl">
+                        <div class="p-4 border-b border-white/50 bg-white/30 flex justify-between items-center">
+                            <div><h3 class="font-bold text-slate-800">Konsultasi AI</h3><p class="text-xs text-slate-500">Medical Knowledge Base</p></div>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online</span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-6" id="chat-box">
+                            <!-- HISTORY -->
+                            ${App.state.chatHistory.map(c => `
+                                <div class="flex ${c.role === 'user' ? 'justify-end' : 'items-start gap-3'} mb-4">
+                                    ${c.role === 'ai' ? '<div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 flex-none"><i class="ph-bold ph-robot"></i></div>' : ''}
+                                    <div class="${c.role === 'user' ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white text-slate-700 rounded-tl-none border border-slate-200'} p-3 rounded-2xl text-sm max-w-[80%] shadow-sm">
+                                        ${c.text}
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${App.state.chatHistory.length === 0 ? `
+                                <div class="flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 flex-none"><i class="ph-bold ph-robot"></i></div>
+                                    <div class="bg-white p-3 rounded-2xl rounded-tl-none text-sm text-slate-700 max-w-[80%] border border-slate-200">Halo! Saya Nutrisi.AI. Tanyakan tentang diet, kalori, atau tips kesehatan.</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="p-4 border-t border-white/50 bg-white/40">
+                            <form onsubmit="event.preventDefault(); App.logic.sendChat(this.msg.value); this.msg.value='';" class="flex gap-2">
+                                <input name="msg" class="flex-1 bg-white/80 px-4 py-3 rounded-full border border-white focus:ring-2 focus:ring-primary-500 outline-none transition" placeholder="Ketik pertanyaan gizi..." autocomplete="off">
+                                <button type="submit" class="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 transition shadow-lg"><i class="ph-bold ph-paper-plane-right"></i></button>
+                            </form>
+                        </div>
+                    </div>`;
+                },
+
+                profile() {
+                    const needs = App.helpers.calculateNeeds();
+                    const conditions = App.state.user.conditions || [];
+                    const chk = (val) => conditions.includes(val) ? 'checked' : '';
+                    const styleChk = (val) => conditions.includes(val) ? 'bg-red-50 border-red-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-500';
+
+                    return `
+                    <div class="max-w-4xl mx-auto space-y-6 pb-24 md:pb-0 animate-fade-in">
+                        <div class="modern-card p-8 flex flex-col md:flex-row items-center gap-6 bg-white/70 relative overflow-hidden">
+                            <div class="w-24 h-24 rounded-full bg-primary-600 text-white flex items-center justify-center text-3xl font-bold shadow-lg border-4 border-white z-10">SP</div>
+                            <div class="text-center md:text-left flex-1 z-10">
+                                <h2 class="text-2xl font-bold text-slate-800">${App.state.user.name}</h2>
+                                <p class="text-sm text-slate-500 mb-3">Target: ${needs.tdee} kkal/hari</p>
+                                <div class="flex gap-2 justify-center md:justify-start">
+                                    <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">Usia ${needs.age} Th</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="modern-card p-8 bg-white/70">
+                            <h3 class="font-bold text-lg text-slate-800 mb-2 flex items-center gap-2"><i class="ph-fill ph-heartbeat text-red-500"></i> Riwayat Medis</h3>
+                            <p class="text-xs text-slate-400 mb-6">Pilih jika Anda memiliki kondisi di bawah ini untuk mengaktifkan AI Medical Alert.</p>
+                            
+                            <div class="flex flex-wrap gap-3 mb-8">
+                                <button onclick="App.logic.updateProfile('conditions', 'Diabetes')" class="px-4 py-2 rounded-xl border font-bold text-sm transition ${styleChk('Diabetes')}">Diabetes</button>
+                                <button onclick="App.logic.updateProfile('conditions', 'Hipertensi')" class="px-4 py-2 rounded-xl border font-bold text-sm transition ${styleChk('Hipertensi')}">Hipertensi</button>
+                                <button onclick="App.logic.updateProfile('conditions', 'Kolesterol')" class="px-4 py-2 rounded-xl border font-bold text-sm transition ${styleChk('Kolesterol')}">Kolesterol</button>
+                            </div>
+
+                            <h3 class="font-bold text-lg text-slate-800 mb-6 flex items-center gap-2"><i class="ph-fill ph-calculator text-primary-500"></i> Pengaturan Fisik</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nama</label><input type="text" value="${App.state.user.name}" onchange="App.logic.updateProfile('name', this.value)" class="w-full p-3 bg-white/50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-primary-500 outline-none"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tanggal Lahir</label><input type="date" value="${App.state.user.dob}" onchange="App.logic.updateProfile('dob', this.value)" class="w-full p-3 bg-white/50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-primary-500 outline-none"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Berat (kg)</label><input type="number" value="${App.state.user.weight}" onchange="App.logic.updateProfile('weight', Number(this.value))" class="w-full p-3 bg-white/50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-primary-500 outline-none"></div>
+                                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tinggi (cm)</label><input type="number" value="${App.state.user.height}" onchange="App.logic.updateProfile('height', Number(this.value))" class="w-full p-3 bg-white/50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-primary-500 outline-none"></div>
+                            </div>
+                            <div class="mt-8 pt-6 border-t border-slate-100">
+                                <button onclick="if(confirm('Reset semua data?')) Storage.reset()" class="text-xs font-bold text-red-500 hover:text-red-700 uppercase tracking-wider">Reset Data Aplikasi</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            },
+
+            // ROUTER & INIT
+            router: {
+                go(view) {
+                    App.camera.stop();
+
+                    const container = document.getElementById('main-content');
+                    const title = document.getElementById('header-title');
+                    const header = document.getElementById('app-header');
+
+                    document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.classList.add('text-slate-500', 'hover:bg-slate-50'); });
+                    const dNav = document.getElementById(`desk-nav-${view}`);
+                    if(dNav) { dNav.classList.add('active'); dNav.classList.remove('text-slate-500', 'hover:bg-slate-50'); }
+
+                    if(view === 'camera') { header.classList.add('hidden'); container.classList.remove('p-4','md:p-8'); container.classList.add('p-0'); }
+                    else { header.classList.remove('hidden'); container.classList.remove('p-0'); container.classList.add('p-4','md:p-8'); }
+
+                    title.innerText = view === 'home' ? 'Dashboard' : view.charAt(0).toUpperCase() + view.slice(1);
+                    container.innerHTML = '';
+                    
+                    setTimeout(() => {
+                        if(view === 'home') container.innerHTML = App.views.home();
+                        if(view === 'journal') { container.innerHTML = App.views.journal(); setTimeout(App.helpers.initCharts, 100); }
+                        if(view === 'camera') { container.innerHTML = App.views.camera(); setTimeout(App.camera.start, 100); }
+                        if(view === 'chat') { container.innerHTML = App.views.chat(); setTimeout(() => document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight, 50); }
+                        if(view === 'profile') container.innerHTML = App.views.profile();
+                    }, 50);
+                }
+            },
+
+            init() {
+                document.getElementById('sidebar-name').innerText = App.state.user.name;
+                const dateEl = document.getElementById('current-date');
+                if(dateEl) dateEl.innerText = dayjs().format('dddd, D MMMM YYYY');
+                App.router.go('home');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', App.init);
+    </script>
+</body>
+</html>

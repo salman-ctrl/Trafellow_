@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StuntGuard Admin - Puskesmas Command Center</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Leaflet.js (Interactive Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- SweetAlert2 (Untuk Alert Cantik) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #F8FAFC; }
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        #map { height: 500px; width: 100%; border-radius: 1rem; z-index: 1; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Chat Specific Styles */
+        .chat-bubble-user { background-color: #f1f5f9; color: #334155; border-radius: 12px 12px 12px 0; }
+        .chat-bubble-admin { background-color: #0ea5e9; color: white; border-radius: 12px 12px 0 12px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-600 font-sans">
+
+    <!-- 1. SIDEBAR NAVIGATION -->
+    <aside class="w-64 glass-sidebar flex flex-col fixed h-full z-20 shadow-xl shadow-slate-200/50 transition-all duration-300">
+        <!-- Logo Area -->
+        <div class="h-24 flex items-center px-6 border-b border-slate-100">
+            <div class="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center text-white mr-3 shadow-lg shadow-brand-500/30">
+                <i class="ph-fill ph-first-aid-kit text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-slate-800 text-lg leading-tight">StuntGuard</h1>
+                <p class="text-[10px] text-brand-600 font-bold tracking-widest uppercase mt-0.5">Admin Panel</p>
+            </div>
+        </div>
+
+        <!-- Menu -->
+        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <div class="text-[10px] font-bold text-slate-400 uppercase px-4 mb-2 mt-2 tracking-wider">Analisis Wilayah</div>
+            
+            <button onclick="App.router.switch('dashboard')" id="nav-dashboard" class="w-full nav-item active flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold bg-brand-50 text-brand-700 transition-all shadow-sm border border-brand-100/50">
+                <i class="ph-fill ph-squares-four text-lg"></i> Dashboard
+            </button>
+            <button onclick="App.router.switch('map')" id="nav-map" class="w-full nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all border border-transparent">
+                <i class="ph-bold ph-map-trifold text-lg"></i> Peta Sebaran (GIS)
+            </button>
+            
+            <div class="text-[10px] font-bold text-slate-400 uppercase px-4 mb-2 mt-6 tracking-wider">Manajemen Pasien</div>
+            <button onclick="App.router.switch('users')" id="nav-users" class="w-full nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all border border-transparent group">
+                <i class="ph-bold ph-users text-lg"></i> Data Ibu & Anak
+                <span id="nav-alert-badge" class="ml-auto bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold hidden group-hover:block transition-all">!</span>
+            </button>
+
+            <div class="text-[10px] font-bold text-slate-400 uppercase px-4 mb-2 mt-6 tracking-wider">Layanan</div>
+            <button onclick="App.router.switch('chat')" id="nav-chat" class="w-full nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all border border-transparent group">
+                <i class="ph-bold ph-chat-circle-dots text-lg"></i> Konsultasi
+                <span class="ml-auto bg-brand-500 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold transition-all shadow-sm shadow-brand-200">2</span>
+            </button>
+        </nav>
+
+        <!-- Admin Profile -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+            <div class="flex items-center gap-3">
+                <img src="https://ui-avatars.com/api/?name=Admin+Puskesmas&background=0ea5e9&color=fff" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+                <div class="text-xs overflow-hidden">
+                    <p class="font-bold text-slate-800 truncate">Dr. Hartono, Sp.A</p>
+                    <p class="text-slate-500 truncate">NIP. 19820312 2010</p>
+                </div>
+                <button class="ml-auto text-slate-400 hover:text-brand-600"><i class="ph-bold ph-sign-out text-lg"></i></button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 2. MAIN CONTENT AREA -->
+    <main class="flex-1 ml-64 p-8 overflow-y-auto h-full relative scroll-smooth bg-[#F8FAFC]">
+        
+        <!-- Header (Dynamic) -->
+        <header class="flex justify-between items-center mb-8 bg-white/50 backdrop-blur-sm sticky top-0 z-10 py-2 -mx-8 px-8 border-b border-slate-100/50">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight" id="page-title">Dashboard Overview</h2>
+                <p class="text-sm text-slate-500 flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Sistem Terhubung • Data Realtime
+                </p>
+            </div>
+            <div class="flex gap-3" id="header-actions">
+                <!-- Actions injected via JS -->
+            </div>
+        </header>
+
+        <!-- VIEW 1: DASHBOARD -->
+        <div id="view-dashboard" class="space-y-6 animate-fade-in">
+            <!-- Stats Cards (Generated JS) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="stats-container">
+                <!-- Injected via JS -->
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Main Chart -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Tren Penurunan Stunting</h3>
+                            <p class="text-xs text-slate-400">Periode: Januari - Desember 2025</p>
+                        </div>
+                        <select class="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 font-bold text-slate-600 outline-none">
+                            <option>Tahun Ini</option>
+                            <option>Tahun Lalu</option>
+                        </select>
+                    </div>
+                    <div class="h-72 w-full">
+                        <canvas id="stuntingChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Live Feed / Alerts -->
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-slate-800 text-lg">Peringatan Terbaru</h3>
+                        <span class="flex h-3 w-3 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                        </span>
+                    </div>
+                    <div class="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar" id="recent-alerts-list">
+                        <!-- Injected via JS -->
+                    </div>
+                    <button onclick="App.router.switch('users', 'critical')" class="mt-4 w-full py-3 bg-slate-50 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-100 transition-colors border border-slate-100">
+                        Lihat Semua Peringatan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: MAP / GIS -->
+        <div id="view-map" class="hidden space-y-6 animate-fade-in">
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xl flex items-center gap-2">
+                            <i class="ph-fill ph-globe-hemisphere-east text-brand-500"></i> Peta Sebaran Gizi Wilayah
+                        </h3>
+                        <p class="text-sm text-slate-500 mt-1">Data diagregasi per RW berdasarkan laporan warga.</p>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="flex bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                         <div class="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg text-slate-600">
+                             <span class="w-3 h-3 rounded-full bg-green-500 border-2 border-white shadow-sm"></span> < 10% (Aman)
+                         </div>
+                         <div class="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg text-slate-600">
+                             <span class="w-3 h-3 rounded-full bg-yellow-400 border-2 border-white shadow-sm"></span> 10-20% (Waspada)
+                         </div>
+                         <div class="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg text-slate-600 bg-white shadow-sm border border-slate-200">
+                             <span class="w-3 h-3 rounded-full bg-rose-500 border-2 border-white shadow-sm animate-pulse"></span> > 20% (Kritis)
+                         </div>
+                    </div>
+                </div>
+                
+                <div class="relative rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                    <div id="map"></div>
+                    <!-- Map Overlay Stats -->
+                    <div class="absolute top-4 right-4 z-[400] bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-white/50 max-w-xs">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-1">Wilayah Fokus Intervensi</h4>
+                        <div id="map-focus-region">
+                            <p class="text-sm font-bold text-slate-800">Memuat data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: USER MANAGEMENT -->
+        <div id="view-users" class="hidden space-y-6 animate-fade-in">
+            <!-- Advanced Toolbar -->
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div class="relative w-full md:w-96">
+                    <i class="ph-bold ph-magnifying-glass absolute left-4 top-3.5 text-slate-400 text-lg"></i>
+                    <input type="text" id="user-search" onkeyup="App.logic.filterUsers()" placeholder="Cari nama ibu, anak, atau RW..." class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500 outline-none transition-all">
+                </div>
+                
+                <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                    <button onclick="App.logic.setFilter('all')" id="btn-filter-all" class="filter-btn active px-4 py-2.5 rounded-xl text-xs font-bold border transition-all bg-slate-800 text-white border-slate-800">Semua</button>
+                    <button onclick="App.logic.setFilter('critical')" id="btn-filter-critical" class="filter-btn px-4 py-2.5 rounded-xl text-xs font-bold border transition-all bg-white text-slate-600 border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200">🔴 Perlu Tindakan</button>
+                    <button onclick="App.logic.setFilter('warning')" id="btn-filter-warning" class="filter-btn px-4 py-2.5 rounded-xl text-xs font-bold border transition-all bg-white text-slate-600 border-slate-200 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200">🟡 Peringatan</button>
+                    <button onclick="App.logic.setFilter('active')" id="btn-filter-active" class="filter-btn px-4 py-2.5 rounded-xl text-xs font-bold border transition-all bg-white text-slate-600 border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200">🟢 Aktif</button>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50/80 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-5 font-bold text-slate-500 uppercase text-xs tracking-wider">Identitas (Ibu & Anak)</th>
+                                <th class="px-6 py-5 font-bold text-slate-500 uppercase text-xs tracking-wider">Lokasi</th>
+                                <th class="px-6 py-5 font-bold text-slate-500 uppercase text-xs tracking-wider">Terakhir Kontrol</th>
+                                <th class="px-6 py-5 font-bold text-slate-500 uppercase text-xs tracking-wider">Status Keaktifan</th>
+                                <th class="px-6 py-5 font-bold text-slate-500 uppercase text-xs tracking-wider text-right">Aksi & Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white" id="user-table-body">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination / Footer -->
+                <div class="p-5 border-t border-slate-100 flex justify-between items-center bg-slate-50/30">
+                    <span class="text-xs text-slate-400 font-bold" id="table-info">Menampilkan 0 data</span>
+                    <div class="flex gap-2">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50"><i class="ph-bold ph-caret-left"></i></button>
+                        <button class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50"><i class="ph-bold ph-caret-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: CHAT / CONSULTATION (NEW) -->
+        <div id="view-chat" class="hidden h-[calc(100vh-140px)] animate-fade-in flex gap-6">
+            
+            <!-- Chat List (Sidebar) -->
+            <div class="w-1/3 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">Pesan Masuk</h3>
+                    <div class="relative">
+                        <i class="ph-bold ph-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" placeholder="Cari pasien..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar" id="chat-list-container">
+                    <!-- Chat items injected via JS -->
+                </div>
+            </div>
+
+            <!-- Chat Room (Main) -->
+            <div class="flex-1 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col overflow-hidden relative">
+                <!-- Chat Header -->
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 z-10" id="chat-header">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold" id="chat-active-avatar">?</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800" id="chat-active-name">Pilih Percakapan</h4>
+                            <p class="text-xs text-slate-500" id="chat-active-status">Offline</p>
+                        </div>
+                    </div>
+                    <!-- Direct WA Button -->
+                    <button id="btn-direct-wa" class="hidden bg-green-50 text-green-600 border border-green-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-green-100 transition-all flex items-center gap-2">
+                        <i class="ph-bold ph-whatsapp-logo text-lg"></i> Lanjut di WhatsApp
+                    </button>
+                </div>
+
+                <!-- Chat Messages -->
+                <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30" id="chat-messages-area">
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
+                        <i class="ph-fill ph-chat-circle-dots text-6xl mb-4"></i>
+                        <p class="text-sm font-medium">Pilih pasien untuk memulai konsultasi</p>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="p-4 border-t border-slate-100 bg-white flex gap-3">
+                    <button class="p-3 text-slate-400 hover:text-brand-600 rounded-xl hover:bg-slate-50 transition"><i class="ph-bold ph-paperclip text-lg"></i></button>
+                    <input type="text" id="chat-input" placeholder="Tulis balasan..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none" disabled>
+                    <button id="chat-send-btn" class="bg-brand-600 text-white p-3 rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition disabled:opacity-50" disabled>
+                        <i class="ph-bold ph-paper-plane-right text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: DETAIL PASIEN -->
+        <div id="modal-patient-detail" class="fixed inset-0 z-[100] hidden">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="App.actions.closeModal()"></div>
+            
+            <!-- Modal Content -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <!-- Header -->
+                <div class="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xl font-bold" id="modal-avatar">
+                            A
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800" id="modal-child-name">Nama Anak</h3>
+                            <p class="text-sm text-slate-500" id="modal-mother-name">Nama Ibu</p>
+                        </div>
+                    </div>
+                    <button onclick="App.actions.closeModal()" class="w-10 h-10 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors">
+                        <i class="ph-bold ph-x text-xl text-slate-500"></i>
+                    </button>
+                </div>
+
+                <!-- Body (Scrollable) -->
+                <div class="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                    <!-- Chart Section -->
+                    <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                        <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i class="ph-fill ph-trend-up text-brand-500"></i> Grafik Pertumbuhan Anak
+                        </h4>
+                        <div class="h-64 w-full">
+                            <canvas id="detailPatientChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- History Table -->
+                    <div>
+                        <h4 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i class="ph-fill ph-clipboard-text text-brand-500"></i> Riwayat Pengukuran (Input Ibu)
+                        </h4>
+                        <div class="overflow-x-auto rounded-xl border border-slate-100">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-500 font-bold">
+                                    <tr>
+                                        <th class="px-4 py-3">Bulan Ke</th>
+                                        <th class="px-4 py-3">Tanggal Input</th>
+                                        <th class="px-4 py-3">Berat (Kg)</th>
+                                        <th class="px-4 py-3">Tinggi (Cm)</th>
+                                        <th class="px-4 py-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100" id="modal-history-body">
+                                    <!-- Injected JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Admin Notes -->
+                    <div>
+                        <label class="font-bold text-slate-700 mb-2 block">Catatan / Intervensi Puskesmas</label>
+                        <textarea class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-brand-500 outline-none" rows="3" placeholder="Tulis catatan medis atau tindakan yang sudah dilakukan (misal: PMT diberikan)..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                    <button onclick="App.actions.closeModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50">Tutup</button>
+                    <button class="px-5 py-2.5 rounded-xl bg-brand-600 text-white font-bold text-sm hover:bg-brand-700 shadow-lg shadow-brand-500/20">Simpan Catatan</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 3. APP ENGINE (JAVASCRIPT) -->
+    <script>
+        const App = {
+            // --- DATA CENTER ---
+            data: {
+                // Mock Database (DIPERLUAS: Sekarang punya history bulanan simulasi input ibu)
+                users: [
+                    { 
+                        id: 1, mother: "Ibu Siti Aminah", child: "Budi", age: 12, rw: "RW 05", lastCheck: 75, statusGizi: "stunting",
+                        history: [
+                            { month: 8, date: "2024-08-05", weight: 7.2, height: 68, status: "Normal" },
+                            { month: 9, date: "2024-09-05", weight: 7.4, height: 69, status: "Normal" },
+                            { month: 10, date: "2024-10-05", weight: 7.5, height: 69.5, status: "Risk" },
+                            { month: 11, date: "2024-11-05", weight: 7.5, height: 70, status: "Stunting" }, // Stagnan
+                            { month: 12, date: "2024-12-05", weight: 7.6, height: 70.2, status: "Stunting" } // Stagnan
+                        ]
+                    },
+                    { 
+                        id: 2, mother: "Ibu Rina Wati", child: "Sari", age: 24, rw: "RW 02", lastCheck: 45, statusGizi: "normal",
+                        history: [
+                            { month: 20, date: "2024-08-10", weight: 11.0, height: 82, status: "Normal" },
+                            { month: 21, date: "2024-09-10", weight: 11.2, height: 83, status: "Normal" },
+                            { month: 22, date: "2024-10-10", weight: 11.5, height: 84, status: "Normal" },
+                            { month: 23, date: "2024-11-10", weight: 11.7, height: 85, status: "Normal" }
+                        ]
+                    },
+                    { 
+                        id: 3, mother: "Ibu Fatimah", child: "Alya", age: 18, rw: "RW 05", lastCheck: 90, statusGizi: "stunting",
+                        history: [
+                            { month: 14, date: "2024-06-02", weight: 8.0, height: 72, status: "Stunting" },
+                            { month: 15, date: "2024-07-02", weight: 8.1, height: 72.5, status: "Stunting" }
+                        ]
+                    },
+                    { 
+                        id: 4, mother: "Ibu Nurul", child: "Dika", age: 9, rw: "RW 03", lastCheck: 12, statusGizi: "risk",
+                        history: [
+                            { month: 6, date: "2024-10-01", weight: 6.8, height: 64, status: "Normal" },
+                            { month: 7, date: "2024-11-01", weight: 7.0, height: 65, status: "Normal" },
+                            { month: 8, date: "2024-12-01", weight: 7.1, height: 66, status: "Risk" }, // Slow gain
+                            { month: 9, date: "2025-01-01", weight: 7.2, height: 66.5, status: "Risk" }
+                        ]
+                    },
+                    // ... data dummy lainnya bisa ditambah
+                ],
+                chats: [
+                    { 
+                        id: 1, userId: 1, name: "Ibu Siti Aminah", status: "Online", 
+                        avatar: "S", unread: 2,
+                        messages: [
+                            { sender: "user", text: "Selamat pagi Bu Bidan, mau tanya.", time: "09:00" },
+                            { sender: "user", text: "Anak saya Budi berat badannya kok tidak naik 2 bulan ini ya?", time: "09:01" }
+                        ]
+                    },
+                    { 
+                        id: 2, userId: 4, name: "Ibu Nurul", status: "Terakhir dilihat 10m lalu", 
+                        avatar: "N", unread: 0,
+                        messages: [
+                            { sender: "user", text: "Bu, jadwal imunisasi Dika kapan ya?", time: "Kemarin" },
+                            { sender: "admin", text: "Halo Bu Nurul, untuk Dika jadwalnya tanggal 15 besok ya di Posyandu Melati.", time: "Kemarin" },
+                            { sender: "user", text: "Baik bu terima kasih.", time: "Kemarin" }
+                        ]
+                    }
+                ],
+                regions: [
+                    { name: "RW 01", lat: -6.960, lng: 110.410, bidan: "Bidan Sari" },
+                    { name: "RW 02", lat: -6.962, lng: 110.420, bidan: "Bidan Dewi" },
+                    { name: "RW 03", lat: -6.970, lng: 110.415, bidan: "Bidan Ratna" },
+                    { name: "RW 04", lat: -6.965, lng: 110.405, bidan: "Bidan Yuli" },
+                    { name: "RW 05", lat: -6.968, lng: 110.425, bidan: "Bidan Indah" }
+                ],
+                filterState: 'all',
+                activeChatId: null
+            },
+
+            // --- BUSINESS LOGIC ---
+            logic: {
+                // Determine user status based on inactivity
+                getUserStatus(lastCheck) {
+                    if (lastCheck > 60) return { code: 'critical', label: 'Perlu Tindakan', color: 'rose' };
+                    if (lastCheck > 30) return { code: 'warning', label: 'Peringatan', color: 'yellow' };
+                    return { code: 'active', label: 'Aktif', color: 'green' };
+                },
+
+                // Calculate regional stats for the map
+                getRegionStats() {
+                    return App.data.regions.map(reg => {
+                        const usersInRegion = App.data.users.filter(u => u.rw === reg.name);
+                        const total = usersInRegion.length;
+                        if (total === 0) return { ...reg, stuntingRate: 0, status: 'green' };
+                        
+                        const stuntingCount = usersInRegion.filter(u => u.statusGizi === 'stunting').length;
+                        const rate = Math.round((stuntingCount / total) * 100);
+                        
+                        let status = 'green';
+                        if (rate > 20) status = 'red';
+                        else if (rate > 10) status = 'yellow';
+
+                        return { ...reg, stuntingRate: rate, status, totalUsers: total };
+                    });
+                },
+
+                getDashboardStats() {
+                    const totalBalita = App.data.users.length;
+                    const stunting = App.data.users.filter(u => u.statusGizi === 'stunting').length;
+                    const rate = ((stunting / totalBalita) * 100).toFixed(1);
+                    const inactive = App.data.users.filter(u => u.lastCheck > 30).length;
+                    const critical = App.data.users.filter(u => u.lastCheck > 60).length;
+
+                    return { totalBalita, rate, inactive, critical };
+                },
+
+                // Filtering Logic
+                setFilter(type) {
+                    App.data.filterState = type;
+                    // Visual Update
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.className = btn.className.replace('bg-slate-800 text-white border-slate-800', 'bg-white text-slate-600 border-slate-200');
+                    });
+                    const activeBtn = document.getElementById(`btn-filter-${type}`);
+                    if(activeBtn) activeBtn.className = activeBtn.className.replace('bg-white text-slate-600 border-slate-200', 'bg-slate-800 text-white border-slate-800');
+                    
+                    App.router.renderUsers();
+                },
+
+                filterUsers() {
+                    App.router.renderUsers(); // Re-render triggers internal filter check
+                }
+            },
+
+            // --- VIEW RENDERER ---
+            router: {
+                switch(view, filterOverride = null) {
+                    // Hide all
+                    ['dashboard', 'map', 'users', 'chat'].forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
+                    document.querySelectorAll('.nav-item').forEach(el => {
+                        el.classList.remove('active', 'bg-brand-50', 'text-brand-700', 'shadow-sm', 'border-brand-100/50');
+                        el.classList.add('text-slate-500', 'border-transparent');
+                    });
+
+                    // Show selected
+                    document.getElementById(`view-${view}`).classList.remove('hidden');
+                    const activeNav = document.getElementById(`nav-${view}`);
+                    activeNav.classList.add('active', 'bg-brand-50', 'text-brand-700', 'shadow-sm', 'border-brand-100/50');
+                    activeNav.classList.remove('text-slate-500', 'border-transparent');
+
+                    // Titles & Headers
+                    const titles = { 'dashboard': 'Dashboard Overview', 'map': 'Analisis GIS Wilayah', 'users': 'Database Pasien', 'chat': 'Telemedicine' };
+                    document.getElementById('page-title').innerText = titles[view];
+
+                    const headerActions = document.getElementById('header-actions');
+                    if(view === 'users' || view === 'dashboard') {
+                        headerActions.innerHTML = `
+                            <button onclick="App.actions.exportData()" class="bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 flex items-center gap-2 active:scale-95 transition-transform">
+                                <i class="ph-bold ph-file-csv"></i> Export CSV
+                            </button>
+                            <button onclick="App.actions.broadcastAll()" class="bg-gradient-to-r from-brand-600 to-brand-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 flex items-center gap-2 active:scale-95 transition-transform">
+                                <i class="ph-bold ph-whatsapp-logo"></i> Broadcast Kader
+                            </button>
+                        `;
+                    } else {
+                        headerActions.innerHTML = '';
+                    }
+
+                    // Logic Triggers
+                    if(view === 'map') App.actions.initMap();
+                    if(view === 'users') {
+                        if(filterOverride) App.logic.setFilter(filterOverride);
+                        App.router.renderUsers();
+                    }
+                    if(view === 'chat') {
+                        App.router.renderChatList();
+                    }
+                },
+
+                renderDashboard() {
+                    const stats = App.logic.getDashboardStats();
+                    
+                    // Render Cards
+                    const container = document.getElementById('stats-container');
+                    container.innerHTML = `
+                        <!-- Card 1 -->
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden group">
+                            <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                                <i class="ph-fill ph-baby"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Balita</p>
+                                <h3 class="text-3xl font-extrabold text-slate-800">${stats.totalBalita}</h3>
+                            </div>
+                        </div>
+                        <!-- Card 2 -->
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 group">
+                            <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                                <i class="ph-fill ph-chart-pie-slice"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stunting Rate</p>
+                                <h3 class="text-3xl font-extrabold text-slate-800">${stats.rate}%</h3>
+                                <p class="text-xs text-green-500 font-bold flex items-center gap-1"><i class="ph-bold ph-trend-down"></i> -1.2%</p>
+                            </div>
+                        </div>
+                        <!-- Card 3 -->
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 group cursor-pointer" onclick="App.router.switch('users', 'warning')">
+                            <div class="w-14 h-14 rounded-2xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                                <i class="ph-fill ph-users-three"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kurang Aktif</p>
+                                <h3 class="text-3xl font-extrabold text-slate-800">${stats.inactive}</h3>
+                                <p class="text-xs text-slate-400 font-bold">Ibu</p>
+                            </div>
+                        </div>
+                        <!-- Card 4 (Alert) -->
+                        <div class="bg-gradient-to-br from-rose-500 to-rose-600 text-white p-5 rounded-3xl shadow-lg shadow-rose-500/30 flex items-center gap-4 relative overflow-hidden cursor-pointer group" onclick="App.router.switch('users', 'critical')">
+                            <div class="relative z-10">
+                                <p class="text-[10px] font-bold text-rose-100 uppercase tracking-widest">Perlu Tindakan</p>
+                                <h3 class="text-3xl font-extrabold">${stats.critical}</h3>
+                                <p class="text-xs text-rose-100 font-medium">Anak Absen > 2 Bln</p>
+                            </div>
+                            <i class="ph-fill ph-siren absolute -right-4 -bottom-4 text-[100px] opacity-20 rotate-12 group-hover:scale-110 transition-transform"></i>
+                        </div>
+                    `;
+
+                    // Render Recent Alerts
+                    const alertList = document.getElementById('recent-alerts-list');
+                    const criticalUsers = App.data.users.filter(u => u.lastCheck > 30).slice(0, 4);
+                    
+                    alertList.innerHTML = criticalUsers.map(u => {
+                        const status = App.logic.getUserStatus(u.lastCheck);
+                        return `
+                        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md transition-all">
+                            <div class="w-10 h-10 rounded-full bg-${status.color}-100 text-${status.color}-600 flex items-center justify-center flex-none font-bold text-lg">
+                                !
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-800 truncate">${u.child} (${u.age} Bln)</p>
+                                <p class="text-xs text-slate-500 truncate">Ibu ${u.mother} • ${u.rw}</p>
+                            </div>
+                            <button onclick="App.actions.contactUser('${u.mother}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-green-500 hover:border-green-200 flex items-center justify-center transition-colors">
+                                <i class="ph-bold ph-whatsapp-logo"></i>
+                            </button>
+                        </div>
+                        `;
+                    }).join('');
+                },
+
+                renderUsers() {
+                    const tbody = document.getElementById('user-table-body');
+                    const searchTerm = document.getElementById('user-search').value.toLowerCase();
+                    
+                    let filtered = App.data.users.filter(u => {
+                        // 1. Text Filter
+                        const matchText = u.mother.toLowerCase().includes(searchTerm) || 
+                                          u.child.toLowerCase().includes(searchTerm) || 
+                                          u.rw.toLowerCase().includes(searchTerm);
+                        
+                        // 2. Category Filter
+                        const status = App.logic.getUserStatus(u.lastCheck);
+                        const matchCat = App.data.filterState === 'all' || status.code === App.data.filterState;
+
+                        return matchText && matchCat;
+                    });
+
+                    document.getElementById('table-info').innerText = `Menampilkan ${filtered.length} dari ${App.data.users.length} data`;
+
+                    tbody.innerHTML = filtered.map(u => {
+                        const status = App.logic.getUserStatus(u.lastCheck);
+                        const giziBadge = u.statusGizi === 'stunting' 
+                            ? `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600">Stunting</span>` 
+                            : (u.statusGizi === 'risk' ? `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-600">Resiko</span>` : '');
+
+                        return `
+                        <tr class="hover:bg-slate-50 transition-colors group">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg font-bold">
+                                        ${u.child.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-800 text-sm flex items-center">${u.child} <span class="text-slate-400 font-normal mx-1">/</span> ${u.age} Bln ${giziBadge}</p>
+                                        <p class="text-xs text-slate-500 font-medium">${u.mother}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200">${u.rw}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph-bold ph-clock text-slate-400"></i>
+                                    <span class="text-sm font-medium text-slate-600">${u.lastCheck} Hari lalu</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold bg-${status.color}-100 text-${status.color}-700 border border-${status.color}-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-${status.color}-500"></span> ${status.label}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    ${status.code === 'critical' || status.code === 'warning' ? 
+                                    `<button onclick="App.actions.contactUser('${u.mother}')" class="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-all active:scale-95">
+                                        <i class="ph-bold ph-whatsapp-logo"></i>
+                                    </button>` : ''
+                                    }
+                                    <button onclick="App.actions.viewDetail(${u.id})" class="inline-flex items-center gap-1.5 bg-brand-50 text-brand-600 hover:bg-brand-100 text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-200 shadow-sm transition-all">
+                                        <i class="ph-bold ph-eye"></i> Lihat Detail
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('');
+                },
+
+                renderChatList() {
+                    const listContainer = document.getElementById('chat-list-container');
+                    listContainer.innerHTML = App.data.chats.map(chat => `
+                        <div onclick="App.actions.selectChat(${chat.id})" class="p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${App.data.activeChatId === chat.id ? 'bg-brand-50/50' : ''}">
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500">${chat.avatar}</div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-slate-800">${chat.name}</h4>
+                                        <p class="text-xs text-slate-500 line-clamp-1">${chat.messages[chat.messages.length - 1].text}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="text-[10px] text-slate-400">${chat.messages[chat.messages.length - 1].time}</span>
+                                    ${chat.unread > 0 ? `<span class="bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">${chat.unread}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                },
+
+                renderMessages() {
+                    const chat = App.data.chats.find(c => c.id === App.data.activeChatId);
+                    if (!chat) return;
+
+                    const area = document.getElementById('chat-messages-area');
+                    area.innerHTML = chat.messages.map(msg => `
+                        <div class="flex w-full ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}">
+                            <div class="${msg.sender === 'admin' ? 'chat-bubble-admin' : 'chat-bubble-user'} max-w-[70%] p-3 text-sm shadow-sm relative group">
+                                <p>${msg.text}</p>
+                                <span class="text-[10px] opacity-70 block text-right mt-1">${msg.time}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Scroll to bottom
+                    area.scrollTop = area.scrollHeight;
+                }
+            },
+
+            // --- USER ACTIONS ---
+            actions: {
+                detailChartInstance: null,
+
+                contactUser(name) {
+                    Swal.fire({
+                        title: 'Hubungi Ibu?',
+                        text: `Buka WhatsApp untuk menghubungi ${name}?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#22c55e',
+                        cancelButtonColor: '#cbd5e1',
+                        confirmButtonText: 'Ya, Buka WhatsApp',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.open(`https://wa.me/?text=Halo ${name}, mohon segera ke Posyandu untuk cek kesehatan anak.`, '_blank');
+                        }
+                    });
+                },
+
+                viewDetail(id) {
+                    const user = App.data.users.find(u => u.id === id);
+                    if(!user) return;
+
+                    // Populate Data
+                    document.getElementById('modal-avatar').innerText = user.child.charAt(0);
+                    document.getElementById('modal-child-name').innerText = user.child + ` (${user.age} Bulan)`;
+                    document.getElementById('modal-mother-name').innerText = `Ibu ${user.mother} • ${user.rw}`;
+
+                    // Populate History Table
+                    const historyBody = document.getElementById('modal-history-body');
+                    if (user.history && user.history.length > 0) {
+                        historyBody.innerHTML = user.history.map(h => `
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-medium">Bulan ${h.month}</td>
+                                <td class="px-4 py-3 text-slate-500 text-xs">${h.date}</td>
+                                <td class="px-4 py-3 font-bold text-slate-700">${h.weight} Kg</td>
+                                <td class="px-4 py-3 text-slate-700">${h.height} Cm</td>
+                                <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${h.status === 'Normal' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}">${h.status}</span></td>
+                            </tr>
+                        `).join('');
+
+                        // Render Chart for this user
+                        this.renderDetailChart(user.history);
+
+                    } else {
+                        historyBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Belum ada data history detail.</td></tr>`;
+                    }
+
+                    // Show Modal
+                    document.getElementById('modal-patient-detail').classList.remove('hidden');
+                },
+
+                closeModal() {
+                    document.getElementById('modal-patient-detail').classList.add('hidden');
+                },
+
+                renderDetailChart(history) {
+                    const ctx = document.getElementById('detailPatientChart').getContext('2d');
+                    
+                    // Destroy prev instance
+                    if (this.detailChartInstance) {
+                        this.detailChartInstance.destroy();
+                    }
+
+                    this.detailChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: history.map(h => `Bln ${h.month}`),
+                            datasets: [{
+                                label: 'Berat Badan (Kg)',
+                                data: history.map(h => h.weight),
+                                borderColor: '#0ea5e9',
+                                backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                                borderWidth: 3,
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#0ea5e9',
+                                pointBorderWidth: 2,
+                                pointRadius: 5,
+                                fill: true,
+                                tension: 0.3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { grid: { borderDash: [5, 5] }, beginAtZero: false },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                },
+
+                broadcastAll() {
+                    Swal.fire({
+                        title: 'Broadcast Kader',
+                        text: 'Kirim notifikasi ke semua Kader RW untuk jemput bola pasien kritis?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Kirim Broadcast',
+                        confirmButtonColor: '#0ea5e9'
+                    }).then((r) => {
+                        if(r.isConfirmed) Swal.fire('Terkirim!', 'Pesan broadcast telah dikirim ke grup WhatsApp Kader.', 'success');
+                    });
+                },
+
+                exportData() {
+                    const csvContent = "data:text/csv;charset=utf-8," + "Nama Ibu,Anak,RW,Status\n" + App.data.users.map(e => `${e.mother},${e.child},${e.rw},${e.statusGizi}`).join("\n");
+                    const encodedUri = encodeURI(csvContent);
+                    window.open(encodedUri);
+                },
+
+                selectChat(id) {
+                    App.data.activeChatId = id;
+                    const chat = App.data.chats.find(c => c.id === id);
+                    
+                    // Update Header
+                    document.getElementById('chat-active-name').innerText = chat.name;
+                    document.getElementById('chat-active-status').innerText = chat.status;
+                    document.getElementById('chat-active-avatar').innerText = chat.avatar;
+                    
+                    // Show Direct WA Button and Update Link
+                    const waBtn = document.getElementById('btn-direct-wa');
+                    waBtn.classList.remove('hidden');
+                    waBtn.onclick = () => window.open(`https://wa.me/?text=Halo ${chat.name}, menindaklanjuti konsultasi di aplikasi StuntGuard...`, '_blank');
+
+                    // Enable Inputs
+                    document.getElementById('chat-input').disabled = false;
+                    document.getElementById('chat-send-btn').disabled = false;
+                    document.getElementById('chat-input').focus();
+
+                    // Render Messages
+                    App.router.renderMessages();
+                    
+                    // Update List highlight
+                    App.router.renderChatList();
+                },
+
+                sendMessage() {
+                    const input = document.getElementById('chat-input');
+                    const text = input.value.trim();
+                    if (!text || !App.data.activeChatId) return;
+
+                    const chat = App.data.chats.find(c => c.id === App.data.activeChatId);
+                    chat.messages.push({ sender: 'admin', text: text, time: 'Now' });
+                    
+                    input.value = '';
+                    App.router.renderMessages();
+                    App.router.renderChatList(); // Update preview text in sidebar
+                },
+
+                mapInitialized: false,
+                initMap() {
+                    if (this.mapInitialized) return;
+                    
+                    const map = L.map('map').setView([-6.966, 110.416], 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+                    const regionStats = App.logic.getRegionStats();
+                    
+                    // Find most critical region for the overlay
+                    const worstRegion = regionStats.reduce((prev, current) => (prev.stuntingRate > current.stuntingRate) ? prev : current);
+                    document.getElementById('map-focus-region').innerHTML = `
+                        <p class="text-lg font-bold text-rose-600">${worstRegion.name}</p>
+                        <p class="text-xs text-slate-500">${worstRegion.stuntingRate}% Stunting Rate</p>
+                        <p class="text-xs font-bold text-slate-600 mt-1">${worstRegion.totalUsers} Balita Terdaftar</p>
+                    `;
+
+                    regionStats.forEach(reg => {
+                        let color = '#22c55e'; // Green
+                        let fillColor = '#dcfce7';
+                        let radius = 250;
+
+                        if(reg.status === 'red') {
+                            color = '#ef4444'; fillColor = '#fee2e2'; radius = 400;
+                        } else if (reg.status === 'yellow') {
+                            color = '#eab308'; fillColor = '#fef9c3';
+                        }
+
+                        const circle = L.circle([reg.lat, reg.lng], {
+                            color: color, fillColor: fillColor, fillOpacity: 0.6, weight: 2, radius: radius
+                        }).addTo(map);
+
+                        circle.bindPopup(`
+                            <div class="text-center p-2 font-sans">
+                                <h3 class="font-bold text-slate-800 text-lg">${reg.name}</h3>
+                                
+                                <!-- Bidan Info Block -->
+                                <div class="bg-blue-50 rounded-lg p-2 my-2 flex items-center gap-2 text-left">
+                                    <div class="w-8 h-8 rounded-full bg-white text-brand-500 flex items-center justify-center font-bold border border-blue-100 shadow-sm">
+                                        <i class="ph-fill ph-user-nurse"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-blue-400 font-bold uppercase">Bidan Desa</p>
+                                        <p class="text-xs font-bold text-blue-900">${reg.bidan}</p>
+                                    </div>
+                                </div>
+
+                                <div class="my-2 flex justify-between items-center px-2">
+                                    <span class="text-xs font-bold text-slate-500">Stunting Rate</span>
+                                    <div class="text-xl font-extrabold ${reg.status === 'red' ? 'text-rose-600' : 'text-slate-700'}">
+                                        ${reg.stuntingRate}%
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 mb-3">${reg.totalUsers} Anak Terpantau</p>
+                                ${reg.status === 'red' ? '<button class="bg-rose-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm w-full hover:bg-rose-600 transition">🚨 Prioritas Intervensi</button>' : ''}
+                            </div>
+                        `);
+                    });
+
+                    this.mapInitialized = true;
+                    setTimeout(() => map.invalidateSize(), 200);
+                }
+            },
+
+            init() {
+                this.router.renderDashboard();
+                this.router.switch('dashboard'); // Start View
+                
+                // Chat Send Listeners
+                document.getElementById('chat-send-btn').addEventListener('click', App.actions.sendMessage);
+                document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') App.actions.sendMessage();
+                });
+
+                // Chart Init (Dashboard Summary)
+                const ctx = document.getElementById('stuntingChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                        datasets: [{
+                            label: 'Tren Stunting (%)',
+                            data: [22, 21.8, 21.5, 21.0, 20.8, 20.2, 19.8, 19.5, 19.0, 18.8, 18.5, 18.2],
+                            borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.05)',
+                            borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderColor: '#0ea5e9', pointBorderWidth: 2, fill: true, tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { grid: { borderDash: [5, 5] }, beginAtZero: false }, x: { grid: { display: false } } }
+                    }
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => { App.init(); });
+    </script>
+</body>
+</html>
